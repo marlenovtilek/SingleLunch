@@ -1,7 +1,7 @@
 'use server'
 
 import { getApiClient } from '@/lib/api'
-import { authOptions } from '@/lib/auth'
+import { authOptions, isSessionAuthorized } from '@/lib/auth'
 import type { changePasswordFormSchema } from '@/lib/validation'
 import { ApiError, type UserChangePasswordError } from '@frontend/types/api'
 import { getServerSession } from 'next-auth'
@@ -13,6 +13,11 @@ export async function changePasswordAction(
   data: ChangePasswordFormSchema
 ): Promise<UserChangePasswordError | boolean> {
   const session = await getServerSession(authOptions)
+  if (!isSessionAuthorized(session)) {
+    return {
+      password: ['Сессия истекла. Войдите заново.']
+    }
+  }
 
   try {
     const apiClient = await getApiClient(session)

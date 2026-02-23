@@ -15,6 +15,9 @@ export async function registerAction(
 
     await apiClient.users.usersCreate({
       username: data.username,
+      birth_date: data.birthDate,
+      phone_number: data.phoneNumber,
+      department: data.department,
       password: data.password,
       password_retype: data.passwordRetype
     })

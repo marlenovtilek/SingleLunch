@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import type React from 'react'
 
 export function FormFooter({
   cta,
@@ -22,7 +21,7 @@ export function FormFooter({
   )
 
   return (
-    <p className="mt-6 text-center text-gray-500">
+    <p className="mt-3 text-center text-xs text-gray-500">
       {cta} {actionLink}
     </p>
   )

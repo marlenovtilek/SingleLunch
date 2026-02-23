@@ -27,6 +27,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+  scheduler:
+    command: bash -c "uv sync && bash /app/scripts/run_scheduler.sh"
+    build:
+      context: backend
+    volumes:
+      - ./backend:/app
+    env_file:
+      - .env.backend
+    depends_on:
+      db:
+        condition: service_healthy
   web:
     command: bash -c "pnpm install -r && pnpm --filter web dev"
     build:

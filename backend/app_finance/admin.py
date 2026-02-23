@@ -1,45 +1,24 @@
-
 from django.contrib import admin
-from .models import Transaction
-from admin_thumbnails import thumbnail  
+from django.utils.html import format_html
 from unfold.admin import ModelAdmin
 
-@admin.register(Transaction)
-class TransactionAdmin(ModelAdmin):
-    
-    receipt_thumbnail = thumbnail('receipt_image', 'Чек') 
-    
-    list_display = (
-        'employee', 
-        'type', 
-        'amount', 
-        'is_verified', 
-        'order_link', 
-        'created_at',
-        'receipt_thumbnail',  
-    )
-    
-    list_filter = ('type', 'is_verified', 'created_at')
-    search_fields = ('employee__username', 'comment')
-    
-    fieldsets = (
-        (None, {'fields': ('employee', 'type', 'amount', 'is_verified', 'comment')}),
-        ('Связи и Документы', {'fields': ('order', 'receipt_image', 'receipt_thumbnail')}),
-    )
-    
-    readonly_fields = ('employee', 'order', 'amount', 'type', 'created_at', 'receipt_thumbnail') 
-    
-    @admin.action(description='Подтвердить выбранные чеки (оплаты)')
-    def verify_transactions(self, request, queryset):
-        updated = queryset.filter(type='KREDIT_PAYMENT', is_verified=False).update(is_verified=True)
-        self.message_user(request, f"Успешно подтверждено {updated} оплат. Долг сотрудников уменьшился.")
+from .models import Payment
 
-    actions = [verify_transactions]
-    
-    @admin.display(description='Заказ')
-    def order_link(self, obj):
-        if obj.order:
-            from django.urls import reverse
-            url = reverse("admin:orders_order_change", args=[obj.order.id])
-            return admin.format_html('<a href="{}">Заказ №{}</a>', url, obj.order.id)
-        return "-"
+
+@admin.register(Payment)
+class PaymentAdmin(ModelAdmin):
+    list_display = ("order", "amount", "created_at", "screenshot_preview")
+    readonly_fields = ("order", "amount", "created_at", "screenshot_preview")
+    search_fields = ("order__id", "order__employee__username")
+    list_select_related = ("order", "order__employee")
+
+    @admin.display(description="Скриншот оплаты")
+    def screenshot_preview(self, obj):
+        if not obj.screenshot:
+            return "—"
+        return format_html(
+            '<a href="{0}" target="_blank" rel="noopener noreferrer">'
+            '<img src="{0}" style="height:80px;width:auto;border-radius:8px;" />'
+            "</a>",
+            obj.screenshot.url,
+        )

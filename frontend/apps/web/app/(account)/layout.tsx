@@ -1,21 +1,25 @@
-import { authOptions } from '@/lib/auth'
-import { getServerSession } from 'next-auth'
-import { redirect } from 'next/navigation'
+import { AccountShell } from '@/components/account-shell'
+import { getCurrentUserOrRedirect } from '@/lib/account'
+import { getBranding } from '@/lib/branding'
 
 export default async function AccountLayout({
   children
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
-
-  if (session === null) {
-    return redirect('/')
-  }
+  const { session, user } = await getCurrentUserOrRedirect()
+  const isAdmin = Boolean(session.user.is_staff || session.user.is_superuser)
+  const branding = await getBranding()
 
   return (
-    <div className="flex-grow h-screen flex items-center justify-center -my-12 w-full">
-      <div className="w-96">{children}</div>
-    </div>
+    <AccountShell
+      isAdmin={isAdmin}
+      userRole={user.role}
+      projectName={branding.projectName}
+      logoUrl={branding.logoUrl}
+      username={session.user.username}
+    >
+      {children}
+    </AccountShell>
   )
 }

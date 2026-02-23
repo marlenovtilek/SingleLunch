@@ -1,7 +1,5 @@
 'use client'
 
-import type React from 'react'
-
 export function FormHeader({
   title,
   description
@@ -11,11 +9,13 @@ export function FormHeader({
 }) {
   return (
     <>
-      <h1 className="text-xl font-medium text-gray-700">{title}</h1>
+      <h1 className="text-lg font-semibold text-gray-700">{title}</h1>
 
-      {description && <p className="mt-1 text-gray-500">{description}</p>}
+      {description && (
+        <p className="mt-1 text-xs text-gray-500">{description}</p>
+      )}
 
-      <hr className="my-8" />
+      <hr className="my-4" />
     </>
   )
 }

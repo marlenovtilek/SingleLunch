@@ -3,17 +3,22 @@ name: Test
 on: [push, pull_request]
 
 jobs:
-  test:
+  backend-tests:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres
+        image: postgres:16
         ports:
           - 5432:5432
         env:
-          POSTGRES_DB: postgres
+          POSTGRES_DB: db
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_PASSWORD: postgres123
+        options: >-
+          --health-cmd "pg_isready -U postgres -d db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,10 +31,53 @@ jobs:
       - name: Install Uv
         run: pip install uv
 
-      - name: Run tests
+      - name: Run backend tests
         env:
-          DATABASE_HOST: localhost
-          DATABASE_USER: postgres
-          DATABASE_PASSWORD: postgres
-          DATABASE_NAME: postgres
-        run: cd backend && uv run -- pytest .
+          DEBUG: "True"
+          SECRET_KEY: ci-secret-key
+          POSTGRES_HOST: 127.0.0.1
+          POSTGRES_PORT: 5432
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres123
+          POSTGRES_DB: db
+          POSTGRES_TEST_DB: test
+        run: |
+          cd backend
+          uv sync
+          uv run -- python manage.py migrate
+          uv run -- pytest . -q
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '21'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          pnpm install --frozen-lockfile
+
+      - name: Frontend build
+        env:
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ci-nextauth-secret
+          API_URL: http://localhost:8000
+        run: |
+          cd frontend
+          pnpm --filter web build
+
+      - name: Frontend lint (Biome)
+        run: |
+          cd frontend
+          pnpm --filter web lint

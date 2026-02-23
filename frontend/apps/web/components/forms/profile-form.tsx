@@ -4,48 +4,81 @@ import type { profileAction } from '@/actions/profile-action'
 import { fieldApiError } from '@/lib/forms'
 import { profileFormSchema } from '@/lib/validation'
 import type { UserCurrent } from '@frontend/types/api'
-import { FormHeader } from '@frontend/ui/forms/form-header'
 import { SubmitField } from '@frontend/ui/forms/submit-field'
 import { TextField } from '@frontend/ui/forms/text-field'
 import { SuccessMessage } from '@frontend/ui/messages/success-message'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { z } from 'zod'
 
 export type ProfileFormSchema = z.infer<typeof profileFormSchema>
 
+function roleLabel(role: UserCurrent['role']) {
+  if (role === 'CANTEEN') {
+    return 'Представитель столовой'
+  }
+  return 'Сотрудник'
+}
+
 export function ProfileForm({
   currentUser,
-  onSubmitHandler
+  onSubmitHandler,
+  departments
 }: {
-  currentUser: Promise<UserCurrent>
+  currentUser: UserCurrent
   onSubmitHandler: typeof profileAction
+  departments: Array<{ id: string; name: string }>
 }) {
+  const router = useRouter()
+  const [isEditing, setIsEditing] = useState<boolean>(false)
   const [success, setSuccess] = useState<boolean>(false)
 
-  const { formState, handleSubmit, register, setError } =
+  const initialValues = {
+    firstName: currentUser.first_name || '',
+    lastName: currentUser.last_name || '',
+    birthDate: currentUser.birth_date || '',
+    phoneNumber: currentUser.phone_number || '',
+    department: currentUser.department || '',
+    telegramId: currentUser.telegram_id || '',
+    mattermostId: currentUser.mattermost_id || ''
+  }
+
+  const { formState, handleSubmit, register, setError, reset } =
     useForm<ProfileFormSchema>({
       resolver: zodResolver(profileFormSchema),
-      defaultValues: async () => {
-        const user = await currentUser
-
-        return {
-          firstName: user.first_name || '',
-          lastName: user.last_name || ''
-        }
-      }
+      defaultValues: initialValues
     })
 
   return (
-    <>
-      <FormHeader
-        title="Update you profile information"
-        description="Change your account data"
-      />
+    <section className="mx-auto w-full max-w-4xl space-y-4">
+      <header className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-4 sm:p-5">
+        <h1 className="text-xl font-semibold text-slate-900">Личный кабинет</h1>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 bg-white/90 p-2.5">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+              Роль
+            </p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-900">
+              {roleLabel(currentUser.role)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-white/90 p-2.5">
+            <p className="text-[11px] uppercase tracking-wide text-slate-500">
+              Права
+            </p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-900">
+              Staff: {currentUser.is_staff ? 'Да' : 'Нет'} · Superuser:{' '}
+              {currentUser.is_superuser ? 'Да' : 'Нет'}
+            </p>
+          </div>
+        </div>
+      </header>
 
       <form
         method="post"
+        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
         onSubmit={handleSubmit(async (data) => {
           const res = await onSubmitHandler(data)
 
@@ -54,33 +87,134 @@ export function ProfileForm({
 
             fieldApiError('first_name', 'firstName', res, setError)
             fieldApiError('last_name', 'lastName', res, setError)
+            fieldApiError('birth_date', 'birthDate', res, setError)
+            fieldApiError('phone_number', 'phoneNumber', res, setError)
+            fieldApiError('department', 'department', res, setError)
+            fieldApiError('telegram_id', 'telegramId', res, setError)
+            fieldApiError('mattermost_id', 'mattermostId', res, setError)
           } else {
             setSuccess(true)
+            setIsEditing(false)
+            router.refresh()
           }
         })}
       >
-        {success && (
-          <SuccessMessage>Profile has been succesfully updated</SuccessMessage>
+        {success && <SuccessMessage>Профиль успешно обновлен</SuccessMessage>}
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Основные данные
+            </p>
+            <TextField
+              type="text"
+              register={register('firstName')}
+              label="Имя"
+              formState={formState}
+              disabled={!isEditing}
+            />
+
+            <TextField
+              type="text"
+              register={register('lastName')}
+              label="Фамилия"
+              formState={formState}
+              disabled={!isEditing}
+            />
+
+            <TextField
+              type="date"
+              register={register('birthDate')}
+              label="Дата рождения"
+              formState={formState}
+              disabled={!isEditing}
+            />
+
+            <label className="mb-3 flex flex-col">
+              <span className="mb-1.5 block text-xs font-medium leading-none text-slate-700">
+                Департамент
+              </span>
+              <select
+                className="block h-9 max-w-lg rounded-md bg-white px-3 text-sm font-medium shadow-sm outline outline-1 outline-gray-900/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                {...register('department')}
+                disabled={!isEditing}
+                defaultValue={currentUser.department || ''}
+              >
+                <option value="">Не выбран</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+              {formState.errors.department && (
+                <div className="mt-1 text-xs text-red-600">
+                  {formState.errors.department.message?.toString()}
+                </div>
+              )}
+            </label>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Контакты и уведомления
+            </p>
+            <TextField
+              type="text"
+              register={register('phoneNumber')}
+              label="Номер телефона"
+              formState={formState}
+              disabled={!isEditing}
+            />
+
+            <TextField
+              type="text"
+              register={register('telegramId')}
+              label="Telegram ID"
+              formState={formState}
+              disabled={!isEditing}
+            />
+
+            <TextField
+              type="text"
+              register={register('mattermostId')}
+              label="Mattermost ID"
+              formState={formState}
+              disabled={!isEditing}
+            />
+          </div>
+        </div>
+
+        {!isEditing ? (
+          <button
+            type="button"
+            onClick={() => {
+              setSuccess(false)
+              setIsEditing(true)
+            }}
+            className="mt-4 block h-10 w-full rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700"
+          >
+            Редактировать профиль
+          </button>
+        ) : (
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+            <SubmitField isLoading={formState.isSubmitting}>
+              Сохранить
+            </SubmitField>
+            <button
+              type="button"
+              onClick={() => {
+                reset(initialValues)
+                setSuccess(false)
+                setIsEditing(false)
+              }}
+              className="block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+            >
+              Отмена
+            </button>
+          </div>
         )}
-
-        <TextField
-          type="text"
-          register={register('firstName')}
-          label="First name"
-          formState={formState}
-        />
-
-        <TextField
-          type="text"
-          register={register('lastName')}
-          label="Last name"
-          formState={formState}
-        />
-
-        <SubmitField isLoading={formState.isLoading}>
-          Update profile
-        </SubmitField>
       </form>
-    </>
+    </section>
   )
 }

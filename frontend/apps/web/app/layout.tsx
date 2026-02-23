@@ -8,7 +8,7 @@ import '@frontend/ui/styles/globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Turbo - Django & Next.js Bootstrap Template'
+  title: 'SingleLunch'
 }
 
 export default function RootLayout({
@@ -23,8 +23,10 @@ export default function RootLayout({
         )}
       >
         <AuthProvider>
-          <div className="px-6">
-            <div className="container mx-auto my-12 max-w-6xl">{children}</div>
+          <div className="px-2 sm:px-4">
+            <div className="container mx-auto my-6 max-w-6xl sm:my-8">
+              {children}
+            </div>
           </div>
         </AuthProvider>
       </body>

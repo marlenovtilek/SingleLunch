@@ -1,0 +1,11 @@
+.git
+.github
+.vscode
+node_modules
+.pnpm-store
+apps/web/.next
+apps/web/node_modules
+apps/web/tsconfig.tsbuildinfo
+packages/**/node_modules
+dist
+coverage

@@ -21,6 +21,7 @@ Turbo is a simple bootstrap template for Django and Next.js, combining both fram
 - [Quickstart](#quickstart)
   - [Environment files configuration](#environment-files-configuration)
   - [Running docker compose](#running-docker-compose)
+- [Order Reminders](#order-reminders)
 - [Included dependencies](#included-dependencies)
   - [Backend dependencies](#backend-dependencies)
   - [Front end dependencies](#front-end-dependencies)
@@ -60,6 +61,38 @@ For more advanced environment variables configuration for the front end, it is r
 
 On the backend it is possible to use third party libraries for loading environment variables. In case that loading variables through `os.environ` is not fulfilling the requriements, we recommend using [django-environ](https://github.com/joke2k/django-environ) application.
 
+Minimal backend env for local run:
+
+```env
+DEBUG=True
+SECRET_KEY=change_me
+ALLOWED_HOSTS=localhost,127.0.0.1,api
+CSRF_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:8765
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres123
+POSTGRES_DB=db
+POSTGRES_HOST=db
+POSTGRES_PORT=5432
+```
+
+For production set `DEBUG=False`, configure real `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, and keep `POSTGRES_PASSWORD` non-empty.
+
+If your LAN IP changes and you open the app from phone/tablet, run:
+
+```bash
+python3 scripts/sync_local_ip_env.py
+```
+
+This updates:
+- `.env.frontend`: `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, `DJANGO_PUBLIC_URL`, `ALLOWED_DEV_ORIGINS`
+- `.env.backend`: `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`
+
+Or use one command:
+
+```bash
+./scripts/dev-up.sh
+```
+
 ### Running docker compose
 
 ```bash
@@ -69,6 +102,96 @@ docker compose up
 After successful installation, it will be possible to access both front end (http://localhost:3000) and backend (http://localhost:8000) part of the system from the browsers.
 
 **NOTE**: Don't forget to change database credentials in docker-compose.yaml and in .env.backend by configuring `DATABASE_PASSWORD`.
+
+### Production profile
+
+Project includes a production compose profile with:
+- Django via `gunicorn`
+- Next.js via `next start` (standalone build)
+- Nginx reverse proxy (single public entrypoint)
+- Dedicated static/media volumes
+
+1. Prepare env files:
+
+```bash
+cp .env.backend.prod.template .env.backend
+cp .env.frontend.prod.template .env.frontend
+```
+
+2. Set real values in env:
+- `SECRET_KEY`, `NEXTAUTH_SECRET`
+- `POSTGRES_PASSWORD`
+- `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`
+- `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`, `FRONTEND_BASE_URL`
+
+3. Start production stack:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+4. Check status/logs:
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f
+```
+
+5. Create admin user:
+
+```bash
+docker compose -f docker-compose.prod.yml exec api uv run -- python manage.py createsuperuser
+```
+
+## Order Reminders
+
+Backend includes a management command which reminds employees (who still have no order) about an active menu:
+
+```bash
+docker compose exec api uv run -- python manage.py send_order_reminders --dry-run
+docker compose exec api uv run -- python manage.py send_order_reminders
+docker compose exec api uv run -- python manage.py send_order_reminders --menu-date 2026-03-14 --force-resend
+```
+
+Optional argument:
+
+```bash
+docker compose exec api uv run -- python manage.py send_order_reminders --menu-date 2026-03-14
+```
+
+`--force-resend` ignores duplicate protection and is useful for manual testing.
+
+To avoid duplicate messages, sent/failed deliveries are stored in
+`app_orders.NotificationLog`. If a reminder for the same `user + menu_date + channel`
+was already sent, next runs will skip it.
+
+Environment variables in `.env.backend`:
+
+```env
+TELEGRAM_BOT_TOKEN=...
+MATTERMOST_BASE_URL=https://mattermost.example.com
+MATTERMOST_BOT_TOKEN=...
+FRONTEND_BASE_URL=https://singlelunch.example.com
+CRON_TIMEZONE=Asia/Bishkek
+REMINDER_CRON=0 16 * * *
+MISSED_DEADLINE_CRON=*/10 * * * *
+```
+
+Scheduler is configured as a dedicated Docker service (`scheduler`) and runs:
+- `send_order_reminders` by `REMINDER_CRON`
+- `mark_missed_deadline_orders` by `MISSED_DEADLINE_CRON`
+
+Start all services:
+
+```bash
+docker compose up --build
+```
+
+Check scheduler logs:
+
+```bash
+docker compose logs -f scheduler
+```
 
 ## Included dependencies
 
@@ -173,6 +296,14 @@ docker compose exec api uv run -- python manage.py createsuperuser
 ```
 
 The second option how to create new user account is to register it on the front end. Turbo provides simple registration form. After account registration, it will be not possible to log in because account is inactive. Superuser needs to access Django admin and activate an account. This is a default behavior provided by Turbo, implementation of special way of account activation is currently out the scope of the project.
+
+Registration/profile fields in this project include:
+
+- `birth_date` (date field)
+- `phone_number`
+- `department` (linked to `Department` model)
+
+Departments are available from `GET /api/departments/`.
 
 ### Authenticated paths on frontend
 

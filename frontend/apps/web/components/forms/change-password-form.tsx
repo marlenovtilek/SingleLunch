@@ -3,7 +3,6 @@
 import type { changePasswordAction } from '@/actions/change-password-action'
 import { fieldApiError } from '@/lib/forms'
 import { changePasswordFormSchema } from '@/lib/validation'
-import { FormHeader } from '@frontend/ui/forms/form-header'
 import { SubmitField } from '@frontend/ui/forms/submit-field'
 import { TextField } from '@frontend/ui/forms/text-field'
 import { SuccessMessage } from '@frontend/ui/messages/success-message'
@@ -27,18 +26,24 @@ export function ChangePaswordForm({
     })
 
   return (
-    <>
-      <FormHeader
-        title="Set new account password"
-        description="Change sign in access password"
-      />
+    <section className="mx-auto w-full max-w-2xl space-y-4">
+      <header className="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-4 sm:p-5">
+        <h1 className="text-xl font-semibold text-slate-900">Безопасность</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Обнови пароль для входа в аккаунт.
+        </p>
+        <ul className="mt-3 space-y-1 text-xs text-slate-600">
+          <li>• Используй минимум 8 символов.</li>
+          <li>• Добавь цифры и буквы разного регистра.</li>
+          <li>• Не используй старый пароль повторно.</li>
+        </ul>
+      </header>
 
-      {success && (
-        <SuccessMessage>Password has been successfully changed</SuccessMessage>
-      )}
+      {success && <SuccessMessage>Пароль успешно изменен</SuccessMessage>}
 
       <form
         method="post"
+        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
         onSubmit={handleSubmit(async (data) => {
           const res = await onSubmitHandler(data)
 
@@ -53,31 +58,38 @@ export function ChangePaswordForm({
           }
         })}
       >
-        <TextField
-          type="text"
-          register={register('password')}
-          label="Current password"
-          formState={formState}
-        />
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <TextField
+            type="password"
+            register={register('password')}
+            label="Текущий пароль"
+            formState={formState}
+            allowPasswordToggle
+          />
 
-        <TextField
-          type="text"
-          register={register('passwordNew')}
-          label="New password"
-          formState={formState}
-        />
+          <TextField
+            type="password"
+            register={register('passwordNew')}
+            label="Новый пароль"
+            formState={formState}
+            allowPasswordToggle
+          />
 
-        <TextField
-          type="text"
-          register={register('passwordRetype')}
-          label="Retype password"
-          formState={formState}
-        />
+          <TextField
+            type="password"
+            register={register('passwordRetype')}
+            label="Повтори новый пароль"
+            formState={formState}
+            allowPasswordToggle
+          />
+        </div>
 
-        <SubmitField isLoading={formState.isLoading}>
-          Change password
-        </SubmitField>
+        <div className="mt-4">
+          <SubmitField isLoading={formState.isSubmitting}>
+            Сменить пароль
+          </SubmitField>
+        </div>
       </form>
-    </>
+    </section>
   )
 }

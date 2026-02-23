@@ -2,10 +2,16 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from . import (
+from .serializers import (
+    BrandingPaymentQrUploadSerializer,
+    BrandingSettingsSerializer,
+    DepartmentSerializer,
     UserChangePasswordErrorSerializer,
     UserChangePasswordSerializer,
     UserCreateErrorSerializer,
@@ -13,8 +19,17 @@ from . import (
     UserCurrentErrorSerializer,
     UserCurrentSerializer,
 )
+from .models import BrandingSettings, Department
 
 User = get_user_model()
+
+
+def ensure_canteen_or_admin(user):
+    if user.is_staff or user.is_superuser:
+        return
+    if getattr(user, "role", None) == "CANTEEN":
+        return
+    raise PermissionDenied("Только представитель столовой или администратор.")
 
 
 class UserViewSet(
@@ -95,7 +110,38 @@ class UserViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-    @action(["delete"], url_path="delete-account", detail=False)
-    def delete_account(self, request, *args, **kwargs):
-        self.request.user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class DepartmentViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    queryset = Department.objects.all().order_by("name")
+    serializer_class = DepartmentSerializer
+    permission_classes = [AllowAny]
+
+
+class BrandingSettingsAPIView(APIView):
+    permission_classes = [AllowAny]
+
+    @extend_schema(responses=BrandingSettingsSerializer)
+    def get(self, request, *args, **kwargs):
+        branding = BrandingSettings.get_solo()
+        serializer = BrandingSettingsSerializer(branding)
+        return Response(serializer.data)
+
+
+class BrandingPaymentQrUploadAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(
+        request=BrandingPaymentQrUploadSerializer,
+        responses={200: BrandingSettingsSerializer},
+    )
+    def post(self, request, *args, **kwargs):
+        ensure_canteen_or_admin(request.user)
+        serializer = BrandingPaymentQrUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        branding = BrandingSettings.get_solo()
+        branding.payment_qr = serializer.validated_data["payment_qr"]
+        branding.save(update_fields=["payment_qr"])
+
+        return Response(BrandingSettingsSerializer(branding).data, status=status.HTTP_200_OK)

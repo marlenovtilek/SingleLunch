@@ -6,6 +6,7 @@ import { FormHeader } from '@frontend/ui/forms/form-header'
 import { SubmitField } from '@frontend/ui/forms/submit-field'
 import { TextField } from '@frontend/ui/forms/text-field'
 import { ErrorMessage } from '@frontend/ui/messages/error-message'
+import { SuccessMessage } from '@frontend/ui/messages/success-message'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { signIn } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
@@ -14,7 +15,11 @@ import type { z } from 'zod'
 
 type LoginFormSchema = z.infer<typeof loginFormSchema>
 
-export function LoginForm() {
+export function LoginForm({
+  projectName = 'SingleLunch'
+}: {
+  projectName?: string
+}) {
   const search = useSearchParams()
 
   const { register, handleSubmit, formState } = useForm<LoginFormSchema>({
@@ -25,19 +30,25 @@ export function LoginForm() {
     signIn('credentials', {
       username: data.username,
       password: data.password,
-      callbackUrl: '/'
+      callbackUrl: '/menu-today'
     })
   })
 
   return (
     <>
       <FormHeader
-        title="Welcome back to Turbo"
-        description="Get an access to internal application"
+        title={`Вход в ${projectName}`}
+        description="Система автоматизации обедов"
       />
 
       {search.has('error') && search.get('error') === 'CredentialsSignin' && (
-        <ErrorMessage>Provided account does not exists.</ErrorMessage>
+        <ErrorMessage>Неверный логин или пароль.</ErrorMessage>
+      )}
+      {search.get('registered') === '1' && (
+        <SuccessMessage>
+          Регистрация завершена. Дождитесь активации аккаунта администратором и
+          затем войдите.
+        </SuccessMessage>
       )}
 
       <form
@@ -49,26 +60,23 @@ export function LoginForm() {
           type="text"
           register={register('username')}
           formState={formState}
-          label="Username"
-          placeholder="Email address or username"
+          label="Логин"
+          placeholder="Имя пользователя"
         />
 
         <TextField
           type="password"
           register={register('password', { required: true })}
           formState={formState}
-          label="Password"
-          placeholder="Enter your password"
+          label="Пароль"
+          placeholder="Введите пароль"
+          allowPasswordToggle
         />
 
-        <SubmitField>Sign in</SubmitField>
+        <SubmitField>Войти</SubmitField>
       </form>
 
-      <FormFooter
-        cta="Don't have an account?"
-        link="/register"
-        title="Sign up"
-      />
+      <FormFooter cta="Нет аккаунта?" link="/register" title="Регистрация" />
     </>
   )
 }
