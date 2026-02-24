@@ -23,26 +23,43 @@ class BrandingSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BrandingSettings
-        fields = ["project_name", "logo_url", "payment_qr_url"]
+        fields = ["project_name", "logo_url", "payment_qr_url", "lunch_price"]
 
-    def get_logo_url(self, obj):
+    def get_logo_url(self, obj: BrandingSettings) -> str:
         if obj.logo:
             return obj.logo.url
         return "/brand/singlelunch-logo.svg"
 
-    def get_payment_qr_url(self, obj):
+    def get_payment_qr_url(self, obj: BrandingSettings) -> str | None:
         if obj.payment_qr:
             return obj.payment_qr.url
         return None
 
 
 class BrandingPaymentQrUploadSerializer(serializers.Serializer):
-    payment_qr = serializers.ImageField()
+    payment_qr = serializers.ImageField(required=False)
+    lunch_price = serializers.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        required=False,
+    )
 
     def validate_payment_qr(self, value):
         if value.size > 5 * 1024 * 1024:
             raise serializers.ValidationError("Размер QR изображения не должен превышать 5 МБ.")
         return value
+
+    def validate_lunch_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Цена должна быть больше нуля.")
+        return value
+
+    def validate(self, attrs):
+        if "payment_qr" not in attrs and "lunch_price" not in attrs:
+            raise serializers.ValidationError(
+                "Передай QR-изображение или новую цену за порцию."
+            )
+        return attrs
 
 
 class UserCurrentSerializer(serializers.ModelSerializer):
@@ -144,6 +161,27 @@ class UserCurrentErrorSerializer(serializers.Serializer):
     mattermost_id = serializers.ListSerializer(
         child=serializers.CharField(), required=False
     )
+
+
+class UserAdminListSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(
+        source="department.name",
+        read_only=True,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "role",
+            "is_active",
+            "department_name",
+            "created_at",
+        ]
 
 
 class UserChangePasswordSerializer(serializers.ModelSerializer):

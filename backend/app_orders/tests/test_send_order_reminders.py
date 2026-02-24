@@ -16,7 +16,6 @@ User = get_user_model()
 def test_send_order_reminders_creates_logs_and_skips_duplicates(monkeypatch):
     menu = DailyMenu.objects.create(
         date=timezone.localdate() + timedelta(days=1),
-        is_active=True,
         selection_deadline=timezone.now() + timedelta(days=1),
     )
     user = User.objects.create_user(
@@ -92,7 +91,6 @@ def test_send_order_reminders_creates_logs_and_skips_duplicates(monkeypatch):
 def test_send_order_reminders_ignores_users_with_order(monkeypatch):
     menu = DailyMenu.objects.create(
         date=timezone.localdate() + timedelta(days=1),
-        is_active=True,
         selection_deadline=timezone.now() + timedelta(days=1),
     )
     user = User.objects.create_user(

@@ -79,7 +79,7 @@ export function AccountShell({
   )
 
   return (
-    <div className="h-[calc(100dvh-3rem)] w-full overflow-hidden rounded-xl bg-gradient-to-b from-slate-100 via-white to-emerald-50/50 p-2 sm:h-[calc(100dvh-4rem)] sm:p-2.5">
+    <div className="h-[calc(100dvh-3rem)] w-full overflow-hidden rounded-xl bg-gradient-to-b from-slate-100 via-white to-emerald-50/50 p-1.5 sm:h-[calc(100dvh-4rem)] sm:p-2.5">
       {isAccountMenuOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/10 lg:hidden"
@@ -100,7 +100,7 @@ export function AccountShell({
       {isAccountMenuOpen &&
         renderProfileMenu('fixed right-4 top-24 z-30 lg:hidden')}
       <div className="grid h-full min-h-0 grid-rows-[auto,1fr] gap-2 lg:grid-cols-[210px_minmax(0,1fr)] lg:grid-rows-1 lg:gap-2.5">
-        <aside className="rounded-xl border border-slate-200 bg-white/90 p-2 shadow-sm backdrop-blur lg:flex lg:h-full lg:flex-col">
+        <aside className="rounded-xl border border-slate-200 bg-white/90 p-1.5 shadow-sm backdrop-blur lg:flex lg:h-full lg:flex-col lg:p-2">
           <div className="mb-2 border-b border-slate-100 pb-1.5">
             <div className="flex items-center justify-between gap-2">
               <BrandLogo
@@ -205,7 +205,7 @@ export function AccountShell({
           </div>
         </aside>
 
-        <main className="min-w-0 min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-3.5">
+        <main className="min-w-0 min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3.5">
           {children}
         </main>
       </div>

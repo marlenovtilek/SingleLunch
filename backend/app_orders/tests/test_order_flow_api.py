@@ -27,7 +27,6 @@ def make_employee(username: str = "employee_1") -> User:
 def make_menu_with_options(deadline, date_offset_days: int = 1):
     menu = DailyMenu.objects.create(
         date=timezone.localdate() + timedelta(days=date_offset_days),
-        is_active=True,
         selection_deadline=deadline,
     )
     option_main = MenuOption.objects.create(

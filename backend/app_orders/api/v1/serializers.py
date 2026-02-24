@@ -113,7 +113,6 @@ class OrderCreateSerializer(serializers.Serializer):
 
         daily_menu = DailyMenu.objects.filter(
             pk=attrs["daily_menu_id"],
-            is_active=True,
         ).first()
         if not daily_menu:
             raise serializers.ValidationError({"daily_menu_id": "Меню не найдено"})

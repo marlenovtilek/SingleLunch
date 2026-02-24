@@ -1,6 +1,9 @@
-import { QrPreview } from '@/components/qr-preview'
+import { PaymentScreenshotModal } from '@/components/payment-screenshot-modal'
 import { canManageCanteen, getCurrentUserOrRedirect } from '@/lib/account'
-import { getTodayDateStringBishkek } from '@/lib/bishkek-date'
+import {
+  formatIsoDateDdMmYyyy,
+  getTodayDateStringBishkek
+} from '@/lib/bishkek-date'
 import { orderStatusBadgeClass } from '@/lib/order-status'
 import { redirect } from 'next/navigation'
 
@@ -40,9 +43,57 @@ type CanteenOrdersDashboard = {
   confirmed_item_totals: ConfirmedItemTotal[]
 }
 
+function addDaysToIsoDate(isoDate: string, days: number): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  const value = new Date(Date.UTC(year, month - 1, day))
+  value.setUTCDate(value.getUTCDate() + days)
+  const nextYear = value.getUTCFullYear()
+  const nextMonth = String(value.getUTCMonth() + 1).padStart(2, '0')
+  const nextDay = String(value.getUTCDate()).padStart(2, '0')
+  return `${nextYear}-${nextMonth}-${nextDay}`
+}
+
+function buildBusinessDateOptions(
+  startDate: string,
+  daysAhead = 180
+): string[] {
+  const [year, month, day] = startDate.split('-').map(Number)
+  if (
+    Number.isNaN(year) ||
+    Number.isNaN(month) ||
+    Number.isNaN(day) ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31
+  ) {
+    return []
+  }
+
+  const cursor = new Date(Date.UTC(year, month - 1, day))
+  const options: string[] = []
+  for (let i = 0; i <= daysAhead; i += 1) {
+    const weekday = cursor.getUTCDay()
+    if (weekday !== 0 && weekday !== 6) {
+      const y = cursor.getUTCFullYear()
+      const m = String(cursor.getUTCMonth() + 1).padStart(2, '0')
+      const d = String(cursor.getUTCDate()).padStart(2, '0')
+      options.push(`${y}-${m}-${d}`)
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+  return options
+}
+
 export default async function CanteenOrdersPage({ searchParams }: PageProps) {
   const params = await searchParams
   const selectedDate = params.date ?? getTodayDateStringBishkek()
+  const dateOptionsBase = buildBusinessDateOptions(
+    addDaysToIsoDate(selectedDate, -60)
+  )
+  const dateOptions = dateOptionsBase.includes(selectedDate)
+    ? dateOptionsBase
+    : [selectedDate, ...dateOptionsBase]
   const { session, user: me } = await getCurrentUserOrRedirect()
 
   if (!canManageCanteen(me)) {
@@ -111,13 +162,18 @@ export default async function CanteenOrdersPage({ searchParams }: PageProps) {
           >
             Дата
           </label>
-          <input
+          <select
             id="canteen-orders-date"
-            type="date"
             name="date"
             defaultValue={selectedDate}
             className="block w-full max-w-xs rounded-md border border-slate-300 px-2.5 py-1.5 text-xs outline-none ring-slate-900/10 focus:ring"
-          />
+          >
+            {dateOptions.map((dateValue) => (
+              <option key={dateValue} value={dateValue}>
+                {formatIsoDateDdMmYyyy(dateValue)}
+              </option>
+            ))}
+          </select>
         </div>
         <button
           type="submit"
@@ -209,48 +265,73 @@ export default async function CanteenOrdersPage({ searchParams }: PageProps) {
                 {dashboard.orders.map((order) => (
                   <article
                     key={order.id}
-                    className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
+                    className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm"
                   >
-                    <p className="text-xs text-slate-500">Сотрудник</p>
-                    <p className="text-xs font-medium text-slate-900">
-                      {order.employee_username}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-500">Статус</p>
-                    <p className="mt-1">
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${orderStatusBadgeClass(order.status)}`}
-                      >
-                        {order.status}
-                      </span>
-                    </p>
-                    <p className="mt-2 text-xs text-slate-500">Дата меню</p>
-                    <p className="text-xs text-slate-700">
-                      {new Date(order.daily_menu_date).toLocaleDateString(
-                        'ru-RU'
-                      )}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-500">Сумма</p>
-                    <p className="text-xs text-slate-700">
-                      {order.total_amount} сом
-                    </p>
-                    <p className="mt-2 text-xs text-slate-500">Позиции</p>
-                    <p className="text-xs text-slate-700">
-                      {order.items
-                        .map(
-                          (item) => `${item.menu_option_name} x${item.quantity}`
-                        )
-                        .join(', ')}
-                    </p>
-                    <p className="mt-2 text-xs text-slate-500">Скрин оплаты</p>
                     {order.payment_screenshot_url ? (
-                      <QrPreview
+                      <PaymentScreenshotModal
                         url={order.payment_screenshot_url}
                         alt={`Скрин оплаты заказа ${order.id}`}
-                        allowDownload={false}
-                        openLabel="Открыть скрин"
-                      />
+                        className="block w-full text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-slate-900">
+                            {order.employee_username}
+                          </p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${orderStatusBadgeClass(order.status)}`}
+                          >
+                            {order.status}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-xs text-slate-600">
+                          <span>
+                            {formatIsoDateDdMmYyyy(order.daily_menu_date)}
+                          </span>
+                          <span className="font-medium">
+                            {order.total_amount} сом
+                          </span>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-700">
+                          {order.items
+                            .map(
+                              (item) =>
+                                `${item.menu_option_name} x${item.quantity}`
+                            )
+                            .join(', ')}
+                        </p>
+                      </PaymentScreenshotModal>
                     ) : (
-                      <p className="text-xs text-slate-400">—</p>
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-semibold text-slate-900">
+                            {order.employee_username}
+                          </p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${orderStatusBadgeClass(order.status)}`}
+                          >
+                            {order.status}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-xs text-slate-600">
+                          <span>
+                            {formatIsoDateDdMmYyyy(order.daily_menu_date)}
+                          </span>
+                          <span className="font-medium">
+                            {order.total_amount} сом
+                          </span>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-700">
+                          {order.items
+                            .map(
+                              (item) =>
+                                `${item.menu_option_name} x${item.quantity}`
+                            )
+                            .join(', ')}
+                        </p>
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          Скрин оплаты не прикреплен
+                        </p>
+                      </div>
                     )}
                   </article>
                 ))}
@@ -287,9 +368,7 @@ export default async function CanteenOrdersPage({ searchParams }: PageProps) {
                           {order.employee_username}
                         </td>
                         <td className="px-3 py-2 text-slate-700">
-                          {new Date(order.daily_menu_date).toLocaleDateString(
-                            'ru-RU'
-                          )}
+                          {formatIsoDateDdMmYyyy(order.daily_menu_date)}
                         </td>
                         <td className="px-3 py-2">
                           <span
@@ -303,12 +382,14 @@ export default async function CanteenOrdersPage({ searchParams }: PageProps) {
                         </td>
                         <td className="px-3 py-2 text-slate-700">
                           {order.payment_screenshot_url ? (
-                            <QrPreview
-                              url={order.payment_screenshot_url}
-                              alt={`Скрин оплаты заказа ${order.id}`}
-                              allowDownload={false}
-                              openLabel="Открыть скрин"
-                            />
+                            <a
+                              href={order.payment_screenshot_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-xs font-medium text-sky-700 underline hover:text-sky-900"
+                            >
+                              Открыть
+                            </a>
                           ) : (
                             <span className="text-xs text-slate-400">—</span>
                           )}

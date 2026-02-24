@@ -18,6 +18,16 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
         return default or []
     return [item.strip() for item in value.split(",") if item.strip()]
 
+
+def env_int(name: str, default: int) -> int:
+    value = environ.get(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
 ######################################################################
 # General
 ######################################################################
@@ -162,6 +172,14 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", not DEBUG)
 SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", not DEBUG)
+SECURE_HSTS_SECONDS = env_int("SECURE_HSTS_SECONDS", 31536000 if not DEBUG else 0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool(
+    "SECURE_HSTS_INCLUDE_SUBDOMAINS", not DEBUG
+)
+SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", not DEBUG)
+SECURE_CONTENT_TYPE_NOSNIFF = env_bool("SECURE_CONTENT_TYPE_NOSNIFF", True)
+SECURE_REFERRER_POLICY = environ.get("SECURE_REFERRER_POLICY", "same-origin")
+X_FRAME_OPTIONS = environ.get("X_FRAME_OPTIONS", "DENY")
 
 ######################################################################
 # Rest Framework
@@ -175,6 +193,9 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
     ],
 }
+
+MENU_NEXT_DAY_SWITCH_HOUR = env_int("MENU_NEXT_DAY_SWITCH_HOUR", 15)
+MENU_NEXT_DAY_SWITCH_MINUTE = env_int("MENU_NEXT_DAY_SWITCH_MINUTE", 0)
 
 ######################################################################
 # Unfold

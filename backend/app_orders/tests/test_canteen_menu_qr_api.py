@@ -31,7 +31,6 @@ def test_canteen_can_upload_payment_qr(settings, tmp_path):
     )
     menu = DailyMenu.objects.create(
         date=timezone.localdate(),
-        is_active=True,
         selection_deadline=timezone.now() + timedelta(hours=2),
         created_by=canteen,
     )
@@ -64,7 +63,6 @@ def test_employee_cannot_upload_payment_qr():
     )
     DailyMenu.objects.create(
         date=timezone.localdate(),
-        is_active=True,
         selection_deadline=timezone.now() + timedelta(hours=2),
         created_by=employee,
     )

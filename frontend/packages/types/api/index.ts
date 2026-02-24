@@ -10,12 +10,20 @@ export { CancelablePromise, CancelError } from './core/CancelablePromise';
 export { OpenAPI } from './core/OpenAPI';
 export type { OpenAPIConfig } from './core/OpenAPI';
 
+export type { BrandingPaymentQrUpload } from './models/BrandingPaymentQrUpload';
+export type { BrandingSettings } from './models/BrandingSettings';
 export type { CanteenMenuOptionInput } from './models/CanteenMenuOptionInput';
+export type { CanteenMenuPaymentQRUpload } from './models/CanteenMenuPaymentQRUpload';
+export type { CanteenMenuSummary } from './models/CanteenMenuSummary';
 export type { CanteenMenuUpsert } from './models/CanteenMenuUpsert';
 export type { CanteenOrderItemTotal } from './models/CanteenOrderItemTotal';
 export type { CanteenOrderRead } from './models/CanteenOrderRead';
 export type { CanteenOrdersDashboard } from './models/CanteenOrdersDashboard';
 export type { Department } from './models/Department';
+export type { DutyAssignee } from './models/DutyAssignee';
+export type { DutyAssignment } from './models/DutyAssignment';
+export type { DutyAssignmentUpsert } from './models/DutyAssignmentUpsert';
+export type { DutyCalendarResponse } from './models/DutyCalendarResponse';
 export type { MenuOption } from './models/MenuOption';
 export type { OrderCreate } from './models/OrderCreate';
 export type { OrderItemCreate } from './models/OrderItemCreate';
@@ -37,6 +45,7 @@ export type { UserCreateError } from './models/UserCreateError';
 export type { UserCurrent } from './models/UserCurrent';
 export type { UserCurrentError } from './models/UserCurrentError';
 
+export { BrandingService } from './services/BrandingService';
 export { DepartmentsService } from './services/DepartmentsService';
 export { SchemaService } from './services/SchemaService';
 export { TokenService } from './services/TokenService';

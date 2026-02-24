@@ -1,6 +1,9 @@
 import { upsertDutyAssignmentAction } from '@/actions/upsert-duty-assignment-action'
 import { canManageCanteen, getCurrentUserOrRedirect } from '@/lib/account'
-import { getCurrentMonthBishkek } from '@/lib/bishkek-date'
+import {
+  formatIsoDateDdMmYyyy,
+  getCurrentMonthBishkek
+} from '@/lib/bishkek-date'
 import { redirect } from 'next/navigation'
 
 type PageProps = {
@@ -230,7 +233,7 @@ export default async function DutyPage({ searchParams }: PageProps) {
               >
                 <div>
                   <p className="text-xs font-semibold text-slate-900">
-                    {dateValue}
+                    {formatIsoDateDdMmYyyy(dateValue)}
                   </p>
                   <p className="text-[11px] text-slate-500">
                     {getWeekdayLabel(dateValue)} ·{' '}

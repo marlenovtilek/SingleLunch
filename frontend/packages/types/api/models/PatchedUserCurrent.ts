@@ -26,3 +26,4 @@ export type PatchedUserCurrent = {
      */
     readonly is_superuser?: boolean;
 };
+

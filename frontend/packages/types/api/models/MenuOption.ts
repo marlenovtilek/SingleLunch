@@ -7,3 +7,4 @@ export type MenuOption = {
     name: string;
     price?: string;
 };
+

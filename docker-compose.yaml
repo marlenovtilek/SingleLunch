@@ -17,13 +17,19 @@ services:
     build:
       context: backend
     expose:
-      - "8765"
+      - "8000"
     ports:
       - "8765:8000"
     volumes:
       - ./backend:/app
     env_file:
       - .env.backend
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; req=urllib.request.Request('http://localhost:8000/healthz/', headers={'X-Forwarded-Proto':'https'}); urllib.request.urlopen(req, timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     depends_on:
       db:
         condition: service_healthy
@@ -39,7 +45,7 @@ services:
       db:
         condition: service_healthy
   web:
-    command: bash -c "pnpm install -r && pnpm --filter web dev"
+    command: bash -c "pnpm install -r && pnpm --filter web build && HOSTNAME=0.0.0.0 PORT=3000 node apps/web/.next/standalone/apps/web/server.js"
     build:
       context: frontend
     volumes:
@@ -50,8 +56,15 @@ services:
       - "3000:3000"
     env_file:
       - .env.frontend
+    healthcheck:
+      test: ["CMD", "node", "-e", "const os=require('os'); const host=os.hostname(); require('http').get('http://' + host + ':3000/login', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 volumes:
   postgres_data: 
     external: false

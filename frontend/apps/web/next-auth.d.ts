@@ -7,6 +7,7 @@ declare module 'next-auth' {
     role: 'EMPLOYEE' | 'CANTEEN'
     is_staff: boolean
     is_superuser: boolean
+    rememberMe?: boolean
   }
 
   interface Session {
@@ -14,6 +15,7 @@ declare module 'next-auth' {
     accessToken: string
     user: User
     error?: string
+    rememberMe?: boolean
   }
 }
 
@@ -27,5 +29,7 @@ declare module 'next-auth/jwt' {
     refresh: string
     error?: string
     userValidatedAt?: number
+    rememberMe?: boolean
+    sessionExpiresAt?: number
   }
 }

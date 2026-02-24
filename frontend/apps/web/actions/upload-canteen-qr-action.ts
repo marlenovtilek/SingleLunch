@@ -34,9 +34,7 @@ export async function uploadCanteenQrAction(
   }
 
   const qrFile = formData.get('payment_qr')
-  if (!(qrFile instanceof File) || qrFile.size === 0) {
-    return { ok: false, message: 'Выберите файл QR-изображения.' }
-  }
+  const lunchPriceRaw = String(formData.get('lunch_price') ?? '').trim()
 
   const apiUrl = process.env.API_URL
   if (!apiUrl) {
@@ -44,7 +42,29 @@ export async function uploadCanteenQrAction(
   }
 
   const requestData = new FormData()
-  requestData.append('payment_qr', qrFile)
+  const hasQrFile = qrFile instanceof File && qrFile.size > 0
+  if (hasQrFile) {
+    requestData.append('payment_qr', qrFile)
+  }
+
+  let hasLunchPrice = false
+  if (lunchPriceRaw.length > 0) {
+    const normalizedLunchPrice = lunchPriceRaw.replace(',', '.')
+    const validFormat = /^\d+(\.\d{1,2})?$/.test(normalizedLunchPrice)
+    if (!validFormat) {
+      return { ok: false, message: 'Введи цену в формате 170 или 170.00.' }
+    }
+    const price = Number(normalizedLunchPrice)
+    if (!Number.isFinite(price) || price <= 0) {
+      return { ok: false, message: 'Цена за порцию должна быть больше нуля.' }
+    }
+    requestData.append('lunch_price', normalizedLunchPrice)
+    hasLunchPrice = true
+  }
+
+  if (!hasQrFile && !hasLunchPrice) {
+    return { ok: false, message: 'Укажи цену или загрузи QR-изображение.' }
+  }
 
   const response = await fetch(`${apiUrl}/api/branding/payment-qr/`, {
     method: 'POST',
@@ -55,7 +75,7 @@ export async function uploadCanteenQrAction(
   })
 
   if (!response.ok) {
-    let message = 'Не удалось загрузить QR-изображение.'
+    let message = 'Не удалось сохранить настройки оплаты.'
     try {
       const body = await response.json()
       const parsed = parseApiErrorMessage(body)
@@ -68,5 +88,5 @@ export async function uploadCanteenQrAction(
     return { ok: false, message }
   }
 
-  return { ok: true, message: 'QR-изображение успешно загружено.' }
+  return { ok: true, message: 'Настройки оплаты успешно сохранены.' }
 }

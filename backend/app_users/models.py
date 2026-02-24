@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -44,6 +45,12 @@ class BrandingSettings(models.Model):
         null=True,
         blank=True,
         verbose_name="Единый QR оплаты",
+    )
+    lunch_price = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("170.00"),
+        verbose_name="Цена за порцию (сом)",
     )
     created_at = models.DateTimeField(_("created at"), auto_now_add=True)
     modified_at = models.DateTimeField(_("modified at"), auto_now=True)

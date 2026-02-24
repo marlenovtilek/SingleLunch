@@ -9,7 +9,8 @@ import { ErrorMessage } from '@frontend/ui/messages/error-message'
 import { SuccessMessage } from '@frontend/ui/messages/success-message'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { signIn } from 'next-auth/react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import type { z } from 'zod'
 
@@ -20,18 +21,42 @@ export function LoginForm({
 }: {
   projectName?: string
 }) {
+  const router = useRouter()
   const search = useSearchParams()
+  const [authError, setAuthError] = useState<string | null>(null)
 
-  const { register, handleSubmit, formState } = useForm<LoginFormSchema>({
-    resolver: zodResolver(loginFormSchema)
-  })
+  const { register, handleSubmit, formState, setValue } =
+    useForm<LoginFormSchema>({
+      resolver: zodResolver(loginFormSchema)
+    })
 
-  const onSubmitHandler = handleSubmit((data) => {
-    signIn('credentials', {
+  const onSubmitHandler = handleSubmit(async (data) => {
+    setAuthError(null)
+
+    const result = await signIn('credentials', {
       username: data.username,
       password: data.password,
-      callbackUrl: '/menu-today'
+      rememberMe: data.rememberMe ? '1' : '0',
+      callbackUrl: '/menu-today',
+      redirect: false
     })
+
+    if (result?.error) {
+      if (result.error === 'InvalidUsername') {
+        setAuthError('Неверный логин.')
+        setValue('username', '', { shouldValidate: true })
+        return
+      }
+      if (result.error === 'InvalidPassword') {
+        setAuthError('Неверный пароль.')
+        setValue('password', '', { shouldValidate: true })
+        return
+      }
+      setAuthError('Неверный логин или пароль.')
+      return
+    }
+
+    router.push(result?.url ?? '/menu-today')
   })
 
   return (
@@ -41,9 +66,12 @@ export function LoginForm({
         description="Система автоматизации обедов"
       />
 
-      {search.has('error') && search.get('error') === 'CredentialsSignin' && (
-        <ErrorMessage>Неверный логин или пароль.</ErrorMessage>
-      )}
+      {authError && <ErrorMessage>{authError}</ErrorMessage>}
+      {!authError &&
+        search.has('error') &&
+        search.get('error') === 'CredentialsSignin' && (
+          <ErrorMessage>Неверный логин или пароль.</ErrorMessage>
+        )}
       {search.get('registered') === '1' && (
         <SuccessMessage>
           Регистрация завершена. Дождитесь активации аккаунта администратором и
@@ -51,11 +79,7 @@ export function LoginForm({
         </SuccessMessage>
       )}
 
-      <form
-        method="post"
-        action="/api/auth/callback/credentials"
-        onSubmit={onSubmitHandler}
-      >
+      <form onSubmit={onSubmitHandler}>
         <TextField
           type="text"
           register={register('username')}
@@ -72,6 +96,15 @@ export function LoginForm({
           placeholder="Введите пароль"
           allowPasswordToggle
         />
+
+        <label className="mb-3 flex items-center gap-2 text-xs text-slate-700">
+          <input
+            type="checkbox"
+            className="h-4 w-4 rounded border-slate-300"
+            {...register('rememberMe')}
+          />
+          Запомнить меня
+        </label>
 
         <SubmitField>Войти</SubmitField>
       </form>

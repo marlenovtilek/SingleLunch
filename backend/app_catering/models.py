@@ -9,10 +9,6 @@ class DailyMenu(models.Model):
     date = models.DateField(unique=True,
         verbose_name="Дата обеда"
     )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name="Активно для выбора"
-    )
     selection_deadline = models.DateTimeField(
         verbose_name="Крайний срок выбора (напр. 20:00 предыдущего дня)"
     )

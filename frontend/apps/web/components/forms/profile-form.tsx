@@ -34,6 +34,8 @@ export function ProfileForm({
   const router = useRouter()
   const [isEditing, setIsEditing] = useState<boolean>(false)
   const [success, setSuccess] = useState<boolean>(false)
+  const telegramBotUrl =
+    process.env.NEXT_PUBLIC_TELEGRAM_BOT_URL?.trim() || 'https://t.me'
 
   const initialValues = {
     firstName: currentUser.first_name || '',
@@ -174,6 +176,17 @@ export function ProfileForm({
               formState={formState}
               disabled={!isEditing}
             />
+            <p className="-mt-2 mb-3 text-[11px] text-slate-500">
+              Для уведомлений подпишись на бота:{' '}
+              <a
+                href={telegramBotUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-sky-700 underline decoration-sky-300 underline-offset-2 hover:text-sky-800"
+              >
+                Открыть Telegram-бота
+              </a>
+            </p>
 
             <TextField
               type="text"

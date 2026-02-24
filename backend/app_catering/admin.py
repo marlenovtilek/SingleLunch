@@ -18,13 +18,12 @@ class MenuOptionInline(TabularInline):
 class DailyMenuAdmin(ModelAdmin):
     list_display = (
         "date",
-        "is_active",
         "selection_deadline",
         "created_by",
         "total_orders_count",
         "total_revenue",
     )
-    list_filter = ("is_active", "date")
+    list_filter = ("date",)
     search_fields = ("date", "created_by__username")
     readonly_fields = ("id",)
     inlines = [MenuOptionInline]
@@ -35,7 +34,6 @@ class DailyMenuAdmin(ModelAdmin):
             {
                 "fields": (
                     "date",
-                    "is_active",
                     ("selection_deadline", "created_by"),
                     "payment_qr",
                 ),
@@ -66,7 +64,6 @@ class DailyMenuAdmin(ModelAdmin):
             new_menu = DailyMenu.objects.create(
                 date=new_date,
                 selection_deadline=new_deadline,
-                is_active=True,
                 created_by=request.user,
             )
             for option in menu.options.all():

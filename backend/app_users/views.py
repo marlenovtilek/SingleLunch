@@ -12,6 +12,7 @@ from .serializers import (
     BrandingPaymentQrUploadSerializer,
     BrandingSettingsSerializer,
     DepartmentSerializer,
+    UserAdminListSerializer,
     UserChangePasswordErrorSerializer,
     UserChangePasswordSerializer,
     UserCreateErrorSerializer,
@@ -32,6 +33,12 @@ def ensure_canteen_or_admin(user):
     raise PermissionDenied("Только представитель столовой или администратор.")
 
 
+def ensure_admin(user):
+    if user.is_staff or user.is_superuser:
+        return
+    raise PermissionDenied("Только администратор.")
+
+
 class UserViewSet(
     mixins.CreateModelMixin,
     viewsets.GenericViewSet,
@@ -41,6 +48,12 @@ class UserViewSet(
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        if self.action in ("admin_list", "activate"):
+            return (
+                self.queryset.filter(is_staff=False, is_superuser=False)
+                .select_related("department")
+                .order_by("is_active", "-created_at")
+            )
         return self.queryset.filter(pk=self.request.user.pk)
 
     def get_permissions(self):
@@ -56,6 +69,8 @@ class UserViewSet(
             return UserCurrentSerializer
         elif self.action == "change_password":
             return UserChangePasswordSerializer
+        elif self.action in ("admin_list", "activate"):
+            return UserAdminListSerializer
 
         return super().get_serializer_class()
 
@@ -110,6 +125,25 @@ class UserViewSet(
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(responses={200: UserAdminListSerializer(many=True)})
+    @action(["get"], detail=False, url_path="admin-list")
+    def admin_list(self, request, *args, **kwargs):
+        ensure_admin(request.user)
+        users = self.get_queryset()
+        serializer = self.get_serializer(users, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(responses={200: UserAdminListSerializer})
+    @action(["post"], detail=True, url_path="activate")
+    def activate(self, request, *args, **kwargs):
+        ensure_admin(request.user)
+        user = self.get_object()
+        if not user.is_active:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+        serializer = self.get_serializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class DepartmentViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Department.objects.all().order_by("name")
@@ -141,7 +175,19 @@ class BrandingPaymentQrUploadAPIView(APIView):
         serializer.is_valid(raise_exception=True)
 
         branding = BrandingSettings.get_solo()
-        branding.payment_qr = serializer.validated_data["payment_qr"]
-        branding.save(update_fields=["payment_qr"])
+        update_fields = []
+
+        payment_qr = serializer.validated_data.get("payment_qr")
+        if payment_qr is not None:
+            branding.payment_qr = payment_qr
+            update_fields.append("payment_qr")
+
+        lunch_price = serializer.validated_data.get("lunch_price")
+        if lunch_price is not None:
+            branding.lunch_price = lunch_price
+            update_fields.append("lunch_price")
+
+        if update_fields:
+            branding.save(update_fields=update_fields)
 
         return Response(BrandingSettingsSerializer(branding).data, status=status.HTTP_200_OK)

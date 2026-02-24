@@ -26,7 +26,6 @@ def test_canteen_orders_dashboard_returns_summary():
     menu_date = timezone.localdate() + timedelta(days=1)
     menu = DailyMenu.objects.create(
         date=menu_date,
-        is_active=True,
         selection_deadline=timezone.now() + timedelta(hours=4),
     )
     option_main = MenuOption.objects.create(
@@ -124,7 +123,6 @@ def test_canteen_menu_update_rejects_option_change_if_orders_exist():
     menu_date = timezone.localdate()
     menu = DailyMenu.objects.create(
         date=menu_date,
-        is_active=True,
         selection_deadline=timezone.now() + timedelta(hours=2),
     )
     option = MenuOption.objects.create(
@@ -153,16 +151,14 @@ def test_canteen_menu_update_rejects_option_change_if_orders_exist():
     payload = {
         "date": menu_date.isoformat(),
         "selection_deadline": (timezone.now() + timedelta(hours=4)).isoformat(),
-        "is_active": True,
         "options": [
             {
                 "name": "Лагман",
-                "price": "170.00",
             }
         ],
     }
 
-    response = client.put(reverse("canteen-menu"), payload, format="json")
+    response = client.put(reverse("canteen-menu-edit"), payload, format="json")
     assert response.status_code == 400
     assert "options" in response.json()
     assert menu.options.count() == 1

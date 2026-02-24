@@ -2,12 +2,14 @@ type Branding = {
   projectName: string
   logoUrl: string | null
   paymentQrUrl: string | null
+  lunchPrice: string
 }
 
 const fallbackBranding: Branding = {
   projectName: 'SingleLunch',
   logoUrl: null,
-  paymentQrUrl: null
+  paymentQrUrl: null,
+  lunchPrice: '170.00'
 }
 
 export async function getBranding(): Promise<Branding> {
@@ -29,6 +31,7 @@ export async function getBranding(): Promise<Branding> {
       project_name?: string
       logo_url?: string | null
       payment_qr_url?: string | null
+      lunch_price?: string
     }
 
     return {
@@ -45,7 +48,12 @@ export async function getBranding(): Promise<Branding> {
         typeof payload.payment_qr_url === 'string' &&
         payload.payment_qr_url.length > 0
           ? payload.payment_qr_url
-          : null
+          : null,
+      lunchPrice:
+        typeof payload.lunch_price === 'string' &&
+        payload.lunch_price.length > 0
+          ? payload.lunch_price
+          : fallbackBranding.lunchPrice
     }
   } catch {
     return fallbackBranding

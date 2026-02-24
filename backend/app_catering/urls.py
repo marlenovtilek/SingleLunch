@@ -2,6 +2,8 @@ from django.urls import path
 
 from app_catering.api.v1.views import (
     CanteenMenuAPIView,
+    CanteenMenuEditAPIView,
+    CanteenMenuListAPIView,
     CanteenMenuPaymentQRUploadAPIView,
     DutyAssigneesAPIView,
     DutyAssignmentUpsertAPIView,
@@ -16,6 +18,16 @@ urlpatterns = [
         "v1/canteen/menu/",
         CanteenMenuAPIView.as_view(),
         name="canteen-menu",
+    ),
+    path(
+        "v1/canteen/menus/",
+        CanteenMenuListAPIView.as_view(),
+        name="canteen-menu-list",
+    ),
+    path(
+        "v1/canteen/menu/edit/",
+        CanteenMenuEditAPIView.as_view(),
+        name="canteen-menu-edit",
     ),
     path(
         "v1/canteen/menu/payment-qr/",

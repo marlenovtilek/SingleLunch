@@ -170,7 +170,17 @@ def _resolve_menu_url() -> str | None:
     return f"{selected}/menu-today"
 
 
+def _project_name() -> str:
+    try:
+        from app_users.models import BrandingSettings
+
+        value = (BrandingSettings.get_solo().project_name or "").strip()
+        return value or "SingleLunch"
+    except Exception:
+        return "SingleLunch"
+
+
 def build_duty_reminder_text(duty_date) -> str:
     return (
-        f"Напоминание: сегодня ({duty_date:%d.%m.%Y}) у вас дежурство в SingleLunch."
+        f"Напоминание: сегодня ({duty_date:%d.%m.%Y}) у вас дежурство в {_project_name()}."
     )

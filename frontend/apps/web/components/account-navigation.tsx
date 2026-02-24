@@ -6,21 +6,22 @@ import { twMerge } from 'tailwind-merge'
 
 const adminLinks = [
   { href: '/canteen-menu-today', label: 'Создать меню' },
-  { href: '/menu-today', label: 'Меню на сегодня' },
+  { href: '/canteen-menu-list', label: 'Список меню' },
   { href: '/canteen-orders', label: 'Все заказы' },
   { href: '/canteen-qr', label: 'QR Код' },
-  { href: '/duty', label: 'Дежурство' }
+  { href: '/duty', label: 'Дежурство' },
+  { href: '/users', label: 'Пользователи' }
 ]
 
 const canteenLinks = [
   { href: '/canteen-menu-today', label: 'Создать меню' },
-  { href: '/menu-today', label: 'Меню на сегодня' },
+  { href: '/canteen-menu-list', label: 'Список меню' },
   { href: '/canteen-orders', label: 'Все заказы' },
   { href: '/canteen-qr', label: 'QR Код' }
 ]
 
 const employeeLinks = [
-  { href: '/menu-today', label: 'Меню на сегодня' },
+  { href: '/menu-today', label: 'Меню' },
   { href: '/orders-history', label: 'Мои заказы' },
   { href: '/duty', label: 'Дежурство' }
 ]

@@ -7,13 +7,12 @@ import { getServerSession } from 'next-auth'
 
 type CanteenOptionPayload = {
   name: string
-  price?: string
 }
 
 export type PublishCanteenMenuPayload = {
+  mode: 'create' | 'edit'
   menuDate: string
   selectionDeadlineLocal: string
-  isActive: boolean
   options: CanteenOptionPayload[]
 }
 
@@ -90,10 +89,9 @@ export async function publishCanteenMenuAction(
     Array.isArray(payload.options) ? payload.options : []
   )
     .map((option) => ({
-      name: String(option.name ?? '').trim(),
-      price: option.price?.trim() || undefined
+      name: String(option.name ?? '').trim()
     }))
-    .filter((option) => option.name || option.price)
+    .filter((option) => option.name)
 
   if (preparedOptions.length === 0) {
     return { ok: false, message: 'Добавь хотя бы одну позицию меню.' }
@@ -108,12 +106,18 @@ export async function publishCanteenMenuAction(
 
   try {
     const apiClient = await getApiClient(session)
-    await apiClient.v1.v1CanteenMenuUpdate({
+    const requestBody = {
       date: payload.menuDate,
       selection_deadline: selectionDeadline,
-      is_active: payload.isActive,
       options: preparedOptions
-    })
+    }
+
+    if (payload.mode === 'edit') {
+      await apiClient.v1.v1CanteenMenuEditUpdate(requestBody)
+      return { ok: true, message: 'Меню обновлено.' }
+    }
+
+    await apiClient.v1.v1CanteenMenuUpdate(requestBody)
 
     return { ok: true, message: 'Меню сохранено.' }
   } catch (error) {

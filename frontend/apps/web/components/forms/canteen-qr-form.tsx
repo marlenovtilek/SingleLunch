@@ -9,9 +9,11 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 
 export function CanteenQrForm({
-  paymentQrUrl
+  paymentQrUrl,
+  lunchPrice
 }: {
   paymentQrUrl: string | null
+  lunchPrice: string
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -67,31 +69,46 @@ export function CanteenQrForm({
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-        <label className="block text-xs font-medium text-slate-700">
-          Загрузить новый QR
-          <input
-            type="file"
-            name="payment_qr"
-            accept="image/*"
-            disabled={isPending}
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (!file) {
-                setSelectedQrPreviewUrl(null)
-                return
-              }
-              setSelectedQrPreviewUrl(URL.createObjectURL(file))
-            }}
-            className="mt-1.5 max-w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-2 file:py-1"
-          />
-        </label>
+        <div className="grid gap-3">
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+            <span>Цена за порцию (сом)</span>
+            <input
+              type="text"
+              name="lunch_price"
+              inputMode="decimal"
+              autoComplete="off"
+              defaultValue={lunchPrice}
+              placeholder="170.00"
+              className="h-7 w-full max-w-[100px] rounded-md border border-slate-300 px-1.5 text-[11px] outline-none ring-slate-900/10 focus:ring"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1 text-xs font-medium text-slate-700">
+            <span>Загрузить новый QR</span>
+            <input
+              type="file"
+              name="payment_qr"
+              accept="image/*"
+              disabled={isPending}
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (!file) {
+                  setSelectedQrPreviewUrl(null)
+                  return
+                }
+                setSelectedQrPreviewUrl(URL.createObjectURL(file))
+              }}
+              className="block w-full max-w-full text-xs text-slate-700 file:mr-2 file:rounded-md file:border file:border-slate-300 file:bg-white file:px-2 file:py-1"
+            />
+          </label>
+        </div>
 
         <button
           type="submit"
           disabled={isPending}
           className="mt-2 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {isPending ? 'Загрузка...' : 'Сохранить QR'}
+          {isPending ? 'Сохранение...' : 'Сохранить настройки оплаты'}
         </button>
 
         {result && (

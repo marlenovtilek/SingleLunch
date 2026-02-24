@@ -16,7 +16,7 @@ from app_users.services.notifications import (
 class Command(BaseCommand):
     help = (
         "Send order reminder notifications to employees who still have no order for "
-        "an active menu."
+        "a menu."
     )
 
     def add_arguments(self, parser):
@@ -42,14 +42,13 @@ class Command(BaseCommand):
                 menu_date = date.fromisoformat(menu_date_str)
             except ValueError as exc:
                 raise ValueError("Invalid --menu-date format. Use YYYY-MM-DD.") from exc
-            return DailyMenu.objects.filter(date=menu_date, is_active=True)
+            return DailyMenu.objects.filter(date=menu_date)
 
         now = timezone.now()
         local_now = timezone.localtime(now)
         day_start = local_now.replace(hour=0, minute=0, second=0, microsecond=0)
         day_end = day_start + timedelta(days=1)
         return DailyMenu.objects.filter(
-            is_active=True,
             selection_deadline__gte=day_start,
             selection_deadline__lt=day_end,
             selection_deadline__gt=now,

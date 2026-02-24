@@ -7,3 +7,4 @@ export type CanteenOrderItemTotal = {
     name: string;
     total_quantity: number;
 };
+

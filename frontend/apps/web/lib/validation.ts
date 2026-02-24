@@ -17,7 +17,8 @@ function isValidBirthDate(value: string): boolean {
 
 const loginFormSchema = z.object({
   username: z.string().min(1, 'Логин обязателен'),
-  password: z.string().min(1, 'Пароль обязателен')
+  password: z.string().min(1, 'Пароль обязателен'),
+  rememberMe: z.boolean().optional().default(false)
 })
 
 const registerFormSchema = z

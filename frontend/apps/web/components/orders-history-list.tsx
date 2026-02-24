@@ -2,6 +2,7 @@
 
 import { CancelOrderButton } from '@/components/forms/cancel-order-button'
 import { PaymentUploadForm } from '@/components/forms/payment-upload-form'
+import { formatIsoDateDdMmYyyy } from '@/lib/bishkek-date'
 import { orderStatusBadgeClass } from '@/lib/order-status'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -84,9 +85,7 @@ export function OrdersHistoryList({
                     Заказ №{index + 1}
                   </p>
                   <p className="mt-1 inline-flex rounded-md border border-slate-200 bg-white px-1.5 py-0.5 text-xs text-slate-700">
-                    {new Date(order.daily_menu_date).toLocaleDateString(
-                      'ru-RU'
-                    )}
+                    {formatIsoDateDdMmYyyy(order.daily_menu_date)}
                   </p>
                 </div>
                 <span
@@ -121,9 +120,7 @@ export function OrdersHistoryList({
                   Детали заказа
                 </h2>
                 <p className="text-xs text-slate-600">
-                  {new Date(selectedOrder.daily_menu_date).toLocaleDateString(
-                    'ru-RU'
-                  )}
+                  {formatIsoDateDdMmYyyy(selectedOrder.daily_menu_date)}
                 </p>
               </div>
               <button

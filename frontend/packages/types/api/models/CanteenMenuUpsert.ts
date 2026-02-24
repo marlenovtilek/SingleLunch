@@ -6,7 +6,6 @@ import type { CanteenMenuOptionInput } from './CanteenMenuOptionInput';
 export type CanteenMenuUpsert = {
     date: string;
     selection_deadline: string;
-    is_active?: boolean;
     options: Array<CanteenMenuOptionInput>;
 };
 

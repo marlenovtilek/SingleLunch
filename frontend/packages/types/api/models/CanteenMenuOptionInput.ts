@@ -4,5 +4,5 @@
 /* eslint-disable */
 export type CanteenMenuOptionInput = {
     name: string;
-    price?: string;
 };
+

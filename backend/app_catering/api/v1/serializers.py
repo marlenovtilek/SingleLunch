@@ -30,7 +30,7 @@ class TodayMenuSerializer(serializers.ModelSerializer):
         ]
 
     def get_can_order(self, obj) -> bool:
-        return obj.is_active and timezone.now() <= obj.selection_deadline
+        return timezone.now() <= obj.selection_deadline
 
     def get_payment_qr_url(self, obj) -> str | None:
         if not obj.payment_qr:
@@ -40,14 +40,47 @@ class TodayMenuSerializer(serializers.ModelSerializer):
 
 class CanteenMenuOptionInputSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
-    price = serializers.DecimalField(max_digits=6, decimal_places=2, required=False)
 
 
 class CanteenMenuUpsertSerializer(serializers.Serializer):
     date = serializers.DateField()
     selection_deadline = serializers.DateTimeField()
-    is_active = serializers.BooleanField(default=True)
     options = CanteenMenuOptionInputSerializer(many=True, min_length=1)
+
+    def validate_date(self, value):
+        if value.weekday() in (5, 6):
+            raise serializers.ValidationError(
+                "Дата меню не может приходиться на выходной (суббота/воскресенье)."
+            )
+        return value
+
+    def validate_selection_deadline(self, value):
+        if value <= timezone.now():
+            raise serializers.ValidationError(
+                "Дедлайн выбора не может быть в прошлом."
+            )
+        if timezone.localtime(value).weekday() in (5, 6):
+            raise serializers.ValidationError(
+                "Дедлайн выбора не может приходиться на выходной (суббота/воскресенье)."
+            )
+        return value
+
+
+class CanteenMenuSummarySerializer(serializers.ModelSerializer):
+    options_count = serializers.IntegerField(read_only=True)
+    options = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DailyMenu
+        fields = [
+            "date",
+            "selection_deadline",
+            "options_count",
+            "options",
+        ]
+
+    def get_options(self, obj: DailyMenu) -> list[str]:
+        return [option.name for option in obj.options.all()]
 
 
 class CanteenMenuPaymentQRUploadSerializer(serializers.Serializer):

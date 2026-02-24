@@ -4,6 +4,9 @@ import type { Session } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { getApiClient } from './api'
 
+const SHORT_SESSION_TTL_SECONDS = 12 * 60 * 60
+const REMEMBER_ME_SESSION_TTL_SECONDS = 30 * 24 * 60 * 60
+
 async function isAccessTokenStillValid(accessToken: string): Promise<boolean> {
   const apiUrl = process.env.API_URL
   if (!apiUrl) {
@@ -92,6 +95,14 @@ const authOptions: AuthOptions = {
         return unauthorizedSession(session)
       }
 
+      const nowUnix = Math.floor(Date.now() / 1000)
+      if (
+        typeof token.sessionExpiresAt === 'number' &&
+        nowUnix > token.sessionExpiresAt
+      ) {
+        return unauthorizedSession(session)
+      }
+
       const access = decodeTokenSafe(token.access)
       const refresh = decodeTokenSafe(token.refresh)
 
@@ -113,15 +124,24 @@ const authOptions: AuthOptions = {
 
       session.refreshToken = token.refresh
       session.accessToken = token.access
+      session.rememberMe = Boolean(token.rememberMe)
 
       return session
     },
     jwt: async ({ token, user }) => {
       if (user?.username) {
+        const nowUnix = Math.floor(Date.now() / 1000)
+        const rememberMe = Boolean(user.rememberMe)
         return {
           ...token,
           ...user,
-          userValidatedAt: Math.floor(Date.now() / 1000)
+          rememberMe,
+          sessionExpiresAt:
+            nowUnix +
+            (rememberMe
+              ? REMEMBER_ME_SESSION_TTL_SECONDS
+              : SHORT_SESSION_TTL_SECONDS),
+          userValidatedAt: nowUnix
         }
       }
 
@@ -141,6 +161,18 @@ const authOptions: AuthOptions = {
       }
 
       const nowUnix = Math.floor(Date.now() / 1000)
+
+      if (
+        typeof token.sessionExpiresAt === 'number' &&
+        nowUnix > token.sessionExpiresAt
+      ) {
+        return {
+          ...token,
+          access: '',
+          refresh: '',
+          error: 'SessionExpired'
+        }
+      }
 
       if (nowUnix > refresh.exp) {
         return {
@@ -202,7 +234,8 @@ const authOptions: AuthOptions = {
           label: 'Email',
           type: 'text'
         },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
+        rememberMe: { label: 'Remember me', type: 'text' }
       },
       async authorize(credentials) {
         if (credentials === undefined) {
@@ -225,6 +258,9 @@ const authOptions: AuthOptions = {
             }
           })
           const currentUser = await apiClientWithToken.users.usersMeRetrieve()
+          const rememberMeRaw = String(credentials.rememberMe ?? '').trim()
+          const rememberMe =
+            rememberMeRaw === '1' || rememberMeRaw.toLowerCase() === 'true'
 
           return {
             id: decodeToken(res.access).user_id,
@@ -233,15 +269,28 @@ const authOptions: AuthOptions = {
             is_staff: currentUser.is_staff ?? false,
             is_superuser: currentUser.is_superuser ?? false,
             access: res.access,
-            refresh: res.refresh
+            refresh: res.refresh,
+            rememberMe
           }
         } catch (error) {
           if (error instanceof ApiError) {
+            const body = error.body as Record<string, unknown> | undefined
+            const code =
+              body && typeof body === 'object' && typeof body.code === 'string'
+                ? body.code
+                : null
+
+            if (code === 'invalid_username') {
+              throw new Error('InvalidUsername')
+            }
+            if (code === 'invalid_password') {
+              throw new Error('InvalidPassword')
+            }
+
             return null
           }
+          return null
         }
-
-        return null
       }
     })
   ]

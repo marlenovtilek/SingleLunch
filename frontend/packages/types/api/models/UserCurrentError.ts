@@ -11,3 +11,4 @@ export type UserCurrentError = {
     telegram_id?: Array<string>;
     mattermost_id?: Array<string>;
 };
+

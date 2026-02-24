@@ -20,7 +20,10 @@ export default async function CanteenQrPage() {
         </p>
       </header>
 
-      <CanteenQrForm paymentQrUrl={branding.paymentQrUrl} />
+      <CanteenQrForm
+        paymentQrUrl={branding.paymentQrUrl}
+        lunchPrice={branding.lunchPrice}
+      />
     </section>
   )
 }

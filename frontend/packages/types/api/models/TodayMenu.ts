@@ -8,7 +8,7 @@ export type TodayMenu = {
     date: string;
     selection_deadline: string;
     readonly can_order: boolean;
-    readonly payment_qr_url?: string | null;
+    readonly payment_qr_url: string | null;
     readonly options: Array<MenuOption>;
 };
 
