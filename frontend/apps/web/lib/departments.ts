@@ -12,7 +12,10 @@ export async function getPublicDepartments(): Promise<DepartmentOption[]> {
   try {
     const response = await fetch(`${apiUrl}/api/departments/`, {
       method: 'GET',
-      cache: 'no-store'
+      cache: 'no-store',
+      headers: {
+        'X-Forwarded-Proto': 'https'
+      }
     })
 
     if (!response.ok) {

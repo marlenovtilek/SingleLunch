@@ -21,7 +21,10 @@ export async function getBranding(): Promise<Branding> {
   try {
     const response = await fetch(`${apiUrl}/api/branding/`, {
       method: 'GET',
-      cache: 'no-store'
+      cache: 'no-store',
+      headers: {
+        'X-Forwarded-Proto': 'https'
+      }
     })
     if (!response.ok) {
       return fallbackBranding

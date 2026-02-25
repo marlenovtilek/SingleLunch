@@ -52,11 +52,20 @@ export function LoginForm({
         setValue('password', '', { shouldValidate: true })
         return
       }
+      if (result.error === 'InactiveUser') {
+        setAuthError('Аккаунт не активирован. Обратитесь к администратору.')
+        return
+      }
       setAuthError('Неверный логин или пароль.')
       return
     }
 
-    router.push(result?.url ?? '/menu-today')
+    if (!result) {
+      setAuthError('Ошибка сети. Повторите попытку.')
+      return
+    }
+
+    router.push(result.url ?? '/menu-today')
   })
 
   return (
@@ -106,7 +115,9 @@ export function LoginForm({
           Запомнить меня
         </label>
 
-        <SubmitField>Войти</SubmitField>
+        <SubmitField isLoading={formState.isSubmitting}>
+          {formState.isSubmitting ? 'Вход...' : 'Войти'}
+        </SubmitField>
       </form>
 
       <FormFooter cta="Нет аккаунта?" link="/register" title="Регистрация" />

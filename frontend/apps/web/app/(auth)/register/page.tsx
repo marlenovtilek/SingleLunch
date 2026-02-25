@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: 'Регистрация - SingleLunch'
 }
 
+// Registration data (departments/branding) must be resolved at request time.
+// During image build API may be unavailable, which would freeze empty options in static HTML.
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function Register() {
   const [branding, departments] = await Promise.all([
     getBranding(),

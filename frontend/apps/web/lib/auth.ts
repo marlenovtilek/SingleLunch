@@ -17,6 +17,7 @@ async function isAccessTokenStillValid(accessToken: string): Promise<boolean> {
     const apiClient = new ApiClient({
       BASE: apiUrl,
       HEADERS: {
+        'X-Forwarded-Proto': 'https',
         Authorization: `Bearer ${accessToken}`
       }
     })
@@ -254,6 +255,7 @@ const authOptions: AuthOptions = {
           const apiClientWithToken = new ApiClient({
             BASE: process.env.API_URL,
             HEADERS: {
+              'X-Forwarded-Proto': 'https',
               Authorization: `Bearer ${res.access}`
             }
           })
@@ -285,6 +287,9 @@ const authOptions: AuthOptions = {
             }
             if (code === 'invalid_password') {
               throw new Error('InvalidPassword')
+            }
+            if (code === 'inactive_user') {
+              throw new Error('InactiveUser')
             }
 
             return null
