@@ -8,6 +8,42 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 
+function getCookieValue(name: string) {
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
+async function logoutDjangoAdminSession() {
+  const csrfToken = getCookieValue('csrftoken')
+  if (!csrfToken) {
+    return
+  }
+
+  const body = new URLSearchParams({
+    csrfmiddlewaretoken: csrfToken,
+    next: '/admin/login/'
+  })
+
+  try {
+    await fetch('/admin/logout/', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-CSRFToken': csrfToken
+      },
+      body: body.toString()
+    })
+  } catch {
+    // Best effort: even if Django admin logout fails, continue NextAuth logout.
+  }
+}
+
 export function AccountShell({
   children,
   isAdmin,
@@ -69,7 +105,10 @@ export function AccountShell({
       <div className="mt-1 border-t border-slate-100 pt-1">
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: '/login' })}
+          onClick={async () => {
+            await logoutDjangoAdminSession()
+            await signOut({ callbackUrl: '/login' })
+          }}
           className="block w-full rounded px-2 py-1.5 text-left text-xs font-medium text-rose-700 hover:bg-rose-50"
         >
           Выйти
