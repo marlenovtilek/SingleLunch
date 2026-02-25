@@ -157,10 +157,10 @@ if [[ "${RUN_RUNTIME_CHECKS}" == "true" ]]; then
   else
     run_check_command \
       "Django check --deploy" \
-      "docker compose -f ${COMPOSE_FILE} exec -T api uv run -- python manage.py check --deploy"
+      "docker compose -f ${COMPOSE_FILE} exec -T api /.venv/bin/python manage.py check --deploy"
     run_check_command \
       "Проверка непримененных миграций" \
-      "docker compose -f ${COMPOSE_FILE} exec -T api uv run -- python manage.py migrate --check"
+      "docker compose -f ${COMPOSE_FILE} exec -T api /.venv/bin/python manage.py migrate --check"
     run_check_command \
       "Smoke health endpoint" \
       "docker compose -f ${COMPOSE_FILE} exec -T api python -c \"import urllib.request; req=urllib.request.Request('http://localhost:8000/healthz/', headers={'X-Forwarded-Proto':'https'}); r=urllib.request.urlopen(req, timeout=5); print(r.status)\""

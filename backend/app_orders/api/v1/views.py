@@ -1,4 +1,3 @@
-from datetime import date
 from decimal import Decimal
 
 from django.db.models import Sum
@@ -10,6 +9,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+from api.request_parsing import parse_optional_iso_date_query
 from app_catering.permissions import IsCanteenOrAdmin
 from app_orders.api.v1.serializers import (
     CanteenOrdersDashboardSerializer,
@@ -128,16 +128,10 @@ class CanteenOrdersDashboardAPIView(views.APIView):
         responses={200: CanteenOrdersDashboardSerializer},
     )
     def get(self, request, *args, **kwargs):
-        selected_date = request.query_params.get("date")
-        if selected_date:
-            try:
-                menu_date = date.fromisoformat(selected_date)
-            except ValueError as error:
-                raise ValidationError(
-                    {"date": "Неверный формат даты. Используй YYYY-MM-DD"}
-                ) from error
-        else:
-            menu_date = timezone.localdate()
+        menu_date = parse_optional_iso_date_query(
+            request.query_params.get("date"),
+            field_name="date",
+        )
 
         orders_qs = (
             Order.objects.filter(daily_menu__date=menu_date)

@@ -46,7 +46,7 @@ fi
 
 echo "[INFO] Running role smoke tests using ${COMPOSE_FILE}"
 
-docker compose -f "${COMPOSE_FILE}" exec -T -e SMOKE_KEEP_DATA="${KEEP_DATA}" api uv run -- python - <<'PY'
+docker compose -f "${COMPOSE_FILE}" exec -T -e SMOKE_KEEP_DATA="${KEEP_DATA}" api /.venv/bin/python - <<'PY'
 import json
 import os
 import urllib.error

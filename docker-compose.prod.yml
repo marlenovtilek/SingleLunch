@@ -23,9 +23,9 @@ services:
       - .env.backend
     command: >
       bash -c "
-      uv run -- python manage.py migrate &&
-      uv run -- python manage.py collectstatic --noinput &&
-      uv run -- gunicorn api.wsgi:application
+      /.venv/bin/python manage.py migrate &&
+      /.venv/bin/python manage.py collectstatic --noinput &&
+      /.venv/bin/gunicorn api.wsgi:application
       --bind 0.0.0.0:8000
       --workers ${GUNICORN_WORKERS:-3}
       --threads ${GUNICORN_THREADS:-2}
@@ -53,7 +53,7 @@ services:
     restart: unless-stopped
     env_file:
       - .env.backend
-    command: bash -c "bash /app/scripts/run_scheduler.sh"
+    command: /bin/bash /app/scripts/run_scheduler.sh
     depends_on:
       db:
         condition: service_healthy
@@ -86,7 +86,7 @@ services:
       api:
         condition: service_healthy
     ports:
-      - "80:80"
+      - "${NGINX_BIND_HOST:-127.0.0.1}:${NGINX_BIND_PORT:-18080}:80"
     volumes:
       - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - media_data:/var/www/media:ro

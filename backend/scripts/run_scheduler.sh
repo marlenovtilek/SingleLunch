@@ -33,9 +33,9 @@ cat > "${CRON_FILE}" <<EOF
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 CRON_TZ=${CRON_TIMEZONE}
-${MISSED_DEADLINE_CRON} source ${ENV_FILE} && cd /app && uv run -- python manage.py mark_missed_deadline_orders >> /proc/1/fd/1 2>> /proc/1/fd/2
-${REMINDER_CRON} source ${ENV_FILE} && cd /app && uv run -- python manage.py send_order_reminders >> /proc/1/fd/1 2>> /proc/1/fd/2
-${DUTY_REMINDER_CRON} source ${ENV_FILE} && cd /app && uv run -- python manage.py send_duty_reminders >> /proc/1/fd/1 2>> /proc/1/fd/2
+${MISSED_DEADLINE_CRON} source ${ENV_FILE} && cd /app && /.venv/bin/python manage.py mark_missed_deadline_orders >> /proc/1/fd/1 2>> /proc/1/fd/2
+${REMINDER_CRON} source ${ENV_FILE} && cd /app && /.venv/bin/python manage.py send_order_reminders >> /proc/1/fd/1 2>> /proc/1/fd/2
+${DUTY_REMINDER_CRON} source ${ENV_FILE} && cd /app && /.venv/bin/python manage.py send_duty_reminders >> /proc/1/fd/1 2>> /proc/1/fd/2
 EOF
 
 crontab "${CRON_FILE}"

@@ -1,29 +1,17 @@
 'use server'
 
 import { authOptions, isSessionAuthorized } from '@/lib/auth'
+import {
+  API_URL_NOT_CONFIGURED_MESSAGE,
+  buildServerApiHeaders,
+  getServerApiBaseUrl,
+  parseApiErrorMessage
+} from '@/lib/server-api'
 import { getServerSession } from 'next-auth'
 
 export type UploadCanteenQrResult =
   | { ok: true; message: string }
   | { ok: false; message: string }
-
-function parseApiErrorMessage(body: unknown): string | null {
-  if (typeof body === 'string' && body.length > 0) {
-    return body
-  }
-
-  if (body && typeof body === 'object') {
-    const firstValue = Object.values(body)[0]
-    if (Array.isArray(firstValue) && typeof firstValue[0] === 'string') {
-      return firstValue[0]
-    }
-    if (typeof firstValue === 'string') {
-      return firstValue
-    }
-  }
-
-  return null
-}
 
 export async function uploadCanteenQrAction(
   formData: FormData
@@ -36,9 +24,9 @@ export async function uploadCanteenQrAction(
   const qrFile = formData.get('payment_qr')
   const lunchPriceRaw = String(formData.get('lunch_price') ?? '').trim()
 
-  const apiUrl = process.env.API_URL
-  if (!apiUrl) {
-    return { ok: false, message: 'API_URL не настроен.' }
+  const apiBaseUrl = getServerApiBaseUrl()
+  if (!apiBaseUrl) {
+    return { ok: false, message: API_URL_NOT_CONFIGURED_MESSAGE }
   }
 
   const requestData = new FormData()
@@ -66,11 +54,9 @@ export async function uploadCanteenQrAction(
     return { ok: false, message: 'Укажи цену или загрузи QR-изображение.' }
   }
 
-  const response = await fetch(`${apiUrl}/api/branding/payment-qr/`, {
+  const response = await fetch(`${apiBaseUrl}/api/branding/payment-qr/`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`
-    },
+    headers: buildServerApiHeaders({ session }),
     body: requestData
   })
 
@@ -78,10 +64,7 @@ export async function uploadCanteenQrAction(
     let message = 'Не удалось сохранить настройки оплаты.'
     try {
       const body = await response.json()
-      const parsed = parseApiErrorMessage(body)
-      if (parsed) {
-        message = parsed
-      }
+      message = parseApiErrorMessage(body, message)
     } catch {
       // ignore json parsing errors
     }

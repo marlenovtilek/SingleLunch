@@ -1,10 +1,17 @@
 import { PaymentScreenshotModal } from '@/components/payment-screenshot-modal'
 import { canManageCanteen, getCurrentUserOrRedirect } from '@/lib/account'
 import {
+  addDaysToIsoDate,
+  buildBusinessDateOptions,
   formatIsoDateDdMmYyyy,
   getTodayDateStringBishkek
 } from '@/lib/bishkek-date'
 import { orderStatusBadgeClass } from '@/lib/order-status'
+import {
+  API_URL_NOT_CONFIGURED_MESSAGE,
+  buildServerApiHeaders,
+  getServerApiBaseUrl
+} from '@/lib/server-api'
 import { redirect } from 'next/navigation'
 
 type PageProps = { searchParams: Promise<{ date?: string }> }
@@ -43,53 +50,12 @@ type CanteenOrdersDashboard = {
   confirmed_item_totals: ConfirmedItemTotal[]
 }
 
-function addDaysToIsoDate(isoDate: string, days: number): string {
-  const [year, month, day] = isoDate.split('-').map(Number)
-  const value = new Date(Date.UTC(year, month - 1, day))
-  value.setUTCDate(value.getUTCDate() + days)
-  const nextYear = value.getUTCFullYear()
-  const nextMonth = String(value.getUTCMonth() + 1).padStart(2, '0')
-  const nextDay = String(value.getUTCDate()).padStart(2, '0')
-  return `${nextYear}-${nextMonth}-${nextDay}`
-}
-
-function buildBusinessDateOptions(
-  startDate: string,
-  daysAhead = 180
-): string[] {
-  const [year, month, day] = startDate.split('-').map(Number)
-  if (
-    Number.isNaN(year) ||
-    Number.isNaN(month) ||
-    Number.isNaN(day) ||
-    month < 1 ||
-    month > 12 ||
-    day < 1 ||
-    day > 31
-  ) {
-    return []
-  }
-
-  const cursor = new Date(Date.UTC(year, month - 1, day))
-  const options: string[] = []
-  for (let i = 0; i <= daysAhead; i += 1) {
-    const weekday = cursor.getUTCDay()
-    if (weekday !== 0 && weekday !== 6) {
-      const y = cursor.getUTCFullYear()
-      const m = String(cursor.getUTCMonth() + 1).padStart(2, '0')
-      const d = String(cursor.getUTCDate()).padStart(2, '0')
-      options.push(`${y}-${m}-${d}`)
-    }
-    cursor.setUTCDate(cursor.getUTCDate() + 1)
-  }
-  return options
-}
-
 export default async function CanteenOrdersPage({ searchParams }: PageProps) {
   const params = await searchParams
   const selectedDate = params.date ?? getTodayDateStringBishkek()
   const dateOptionsBase = buildBusinessDateOptions(
-    addDaysToIsoDate(selectedDate, -60)
+    addDaysToIsoDate(selectedDate, -60),
+    180
   )
   const dateOptions = dateOptionsBase.includes(selectedDate)
     ? dateOptionsBase
@@ -100,15 +66,15 @@ export default async function CanteenOrdersPage({ searchParams }: PageProps) {
     return redirect('/menu-today')
   }
 
-  const apiUrl = process.env.API_URL
-  if (!apiUrl) {
+  const apiBaseUrl = getServerApiBaseUrl()
+  if (!apiBaseUrl) {
     return (
       <section className="space-y-3">
         <h1 className="text-lg font-semibold text-slate-900">
           Заказы столовой
         </h1>
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-900">
-          API_URL не настроен.
+          {API_URL_NOT_CONFIGURED_MESSAGE}
         </div>
       </section>
     )
@@ -119,12 +85,10 @@ export default async function CanteenOrdersPage({ searchParams }: PageProps) {
 
   try {
     const response = await fetch(
-      `${apiUrl}/api/v1/canteen/orders/?date=${selectedDate}`,
+      `${apiBaseUrl}/api/v1/canteen/orders/?date=${selectedDate}`,
       {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`
-        },
+        headers: buildServerApiHeaders({ session }),
         cache: 'no-store'
       }
     )

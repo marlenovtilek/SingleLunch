@@ -6,6 +6,10 @@ from django.utils import timezone
 from app_catering.models import DailyMenu
 from app_orders.models import NotificationLog, Order
 from app_users.models import User
+from app_users.services.notification_dispatch import (
+    NotificationDispatchCounters,
+    dispatch_user_notification,
+)
 from app_users.services.notifications import (
     build_order_reminder_text,
     send_mattermost_dm,
@@ -54,35 +58,6 @@ class Command(BaseCommand):
             selection_deadline__gt=now,
         )
 
-    @staticmethod
-    def _already_sent(user: User, menu_date, channel: NotificationLog.Channel) -> bool:
-        return NotificationLog.objects.filter(
-            user=user,
-            menu_date=menu_date,
-            channel=channel,
-            notification_type=NotificationLog.Type.ORDER_REMINDER,
-            status=NotificationLog.Status.SENT,
-        ).exists()
-
-    @staticmethod
-    def _upsert_log(
-        user: User,
-        menu_date,
-        channel: NotificationLog.Channel,
-        status: NotificationLog.Status,
-        error_message: str = "",
-    ):
-        NotificationLog.objects.update_or_create(
-            user=user,
-            menu_date=menu_date,
-            channel=channel,
-            notification_type=NotificationLog.Type.ORDER_REMINDER,
-            defaults={
-                "status": status,
-                "error_message": error_message,
-            },
-        )
-
     def handle(self, *args, **options):
         try:
             menus = list(self._target_menus(options.get("menu_date")).order_by("date"))
@@ -96,12 +71,8 @@ class Command(BaseCommand):
 
         dry_run = options["dry_run"]
         force_resend = options["force_resend"]
-        sent_telegram = 0
-        sent_mattermost = 0
-        failed = 0
-        users_without_channels = 0
+        counters = NotificationDispatchCounters()
         total_recipients = 0
-        skipped_duplicates = 0
 
         for menu in menus:
             ordered_user_ids = set(
@@ -133,78 +104,19 @@ class Command(BaseCommand):
                     )
                     continue
 
-                has_channel = False
-
-                if user.telegram_id:
-                    has_channel = True
-                    if (
-                        not force_resend
-                        and self._already_sent(
-                            user, menu.date, NotificationLog.Channel.TELEGRAM
-                        )
-                    ):
-                        skipped_duplicates += 1
-                    else:
-                        result = send_telegram_message(str(user.telegram_id), reminder_text)
-                        if result.success:
-                            sent_telegram += 1
-                            self._upsert_log(
-                                user,
-                                menu.date,
-                                NotificationLog.Channel.TELEGRAM,
-                                NotificationLog.Status.SENT,
-                            )
-                        else:
-                            failed += 1
-                            self._upsert_log(
-                                user,
-                                menu.date,
-                                NotificationLog.Channel.TELEGRAM,
-                                NotificationLog.Status.FAILED,
-                                result.message,
-                            )
-                            self.stderr.write(
-                                self.style.ERROR(
-                                    f"[Telegram] {user.username}: {result.message}"
-                                )
-                            )
-
-                if user.mattermost_id:
-                    has_channel = True
-                    if (
-                        not force_resend
-                        and self._already_sent(
-                            user, menu.date, NotificationLog.Channel.MATTERMOST
-                        )
-                    ):
-                        skipped_duplicates += 1
-                    else:
-                        result = send_mattermost_dm(str(user.mattermost_id), reminder_text)
-                        if result.success:
-                            sent_mattermost += 1
-                            self._upsert_log(
-                                user,
-                                menu.date,
-                                NotificationLog.Channel.MATTERMOST,
-                                NotificationLog.Status.SENT,
-                            )
-                        else:
-                            failed += 1
-                            self._upsert_log(
-                                user,
-                                menu.date,
-                                NotificationLog.Channel.MATTERMOST,
-                                NotificationLog.Status.FAILED,
-                                result.message,
-                            )
-                            self.stderr.write(
-                                self.style.ERROR(
-                                    f"[Mattermost] {user.username}: {result.message}"
-                                )
-                            )
-
-                if not has_channel:
-                    users_without_channels += 1
+                dispatch_user_notification(
+                    user=user,
+                    reminder_date=menu.date,
+                    reminder_text=reminder_text,
+                    notification_type=NotificationLog.Type.ORDER_REMINDER,
+                    force_resend=force_resend,
+                    send_telegram=send_telegram_message,
+                    send_mattermost=send_mattermost_dm,
+                    counters=counters,
+                    error_writer=lambda message: self.stderr.write(
+                        self.style.ERROR(message)
+                    ),
+                )
 
         if dry_run:
             self.stdout.write(
@@ -217,10 +129,10 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.SUCCESS(
                 "Reminder sending complete. "
-                f"Telegram sent: {sent_telegram}, "
-                f"Mattermost sent: {sent_mattermost}, "
-                f"Skipped duplicates: {skipped_duplicates}, "
-                f"Failed: {failed}, "
-                f"No channels: {users_without_channels}."
+                f"Telegram sent: {counters.sent_telegram}, "
+                f"Mattermost sent: {counters.sent_mattermost}, "
+                f"Skipped duplicates: {counters.skipped_duplicates}, "
+                f"Failed: {counters.failed}, "
+                f"No channels: {counters.users_without_channels}."
             )
         )

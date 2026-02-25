@@ -2,6 +2,7 @@
 
 import { getApiClient } from '@/lib/api'
 import { authOptions, isSessionAuthorized } from '@/lib/auth'
+import { parseApiClientError } from '@/lib/server-api'
 import { ApiError } from '@frontend/types/api'
 import { getServerSession } from 'next-auth'
 
@@ -41,25 +42,6 @@ function toBishkekOffsetDateTime(localValue: string): string | null {
   }
 
   return null
-}
-
-function extractApiErrorMessage(error: ApiError): string {
-  const body = error.body
-  if (typeof body === 'string' && body.length > 0) {
-    return body
-  }
-
-  if (body && typeof body === 'object') {
-    const firstValue = Object.values(body)[0]
-    if (Array.isArray(firstValue) && typeof firstValue[0] === 'string') {
-      return firstValue[0]
-    }
-    if (typeof firstValue === 'string') {
-      return firstValue
-    }
-  }
-
-  return 'Не удалось сохранить меню.'
 }
 
 export async function publishCanteenMenuAction(
@@ -122,7 +104,10 @@ export async function publishCanteenMenuAction(
     return { ok: true, message: 'Меню сохранено.' }
   } catch (error) {
     if (error instanceof ApiError) {
-      return { ok: false, message: extractApiErrorMessage(error) }
+      return {
+        ok: false,
+        message: parseApiClientError(error, 'Не удалось сохранить меню.')
+      }
     }
     return { ok: false, message: 'Сервис недоступен. Попробуй позже.' }
   }

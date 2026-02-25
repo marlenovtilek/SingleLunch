@@ -30,3 +30,5 @@ pgdata
 backend/.venv
 backend/media
 backend/payments
+backups/
+.deploy/

@@ -3,6 +3,7 @@
 ## 1) Перед деплоем
 
 - [ ] Актуальная ветка и чистый diff для релиза.
+- [ ] Создан релизный tag (например `v2026.02.25-1`).
 - [ ] Заполнены `.env.backend` и `.env.frontend`.
 - [ ] `DEBUG=False` в `.env.backend`.
 - [ ] Реальные и безопасные `SECRET_KEY` и `NEXTAUTH_SECRET`.
@@ -25,9 +26,8 @@ scripts/prod-preflight.sh --runtime
 ## 3) Запуск прод-стека
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml ps
-docker compose -f docker-compose.prod.yml logs -f
+git fetch --tags --prune origin
+./scripts/deploy-prod.sh --ref <tag>
 ```
 
 ## 4) Инициализация после старта
@@ -35,7 +35,7 @@ docker compose -f docker-compose.prod.yml logs -f
 - [ ] Создан superuser:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec api uv run -- python manage.py createsuperuser
+docker compose -f docker-compose.prod.yml exec api /.venv/bin/python manage.py createsuperuser
 ```
 
 - [ ] Проверена админка `/admin`.
@@ -52,7 +52,25 @@ docker compose -f docker-compose.prod.yml exec api uv run -- python manage.py cr
 scripts/role-smoke.sh
 ```
 
-## 5) Пост-деплой
+## 5) Backup / restore
+
+- [ ] Перед деплоем создан backup БД.
+- [ ] Проверен restore-check backup (временная БД).
+
+```bash
+scripts/db-backup.sh --compose-file docker-compose.prod.yml
+scripts/db-restore-check.sh --compose-file docker-compose.prod.yml --file backups/postgres/<file>.sql.gz
+```
+
+## 6) Rollback plan
+
+- [ ] Проверена команда rollback до предыдущего релиза:
+
+```bash
+scripts/rollback-prod.sh --compose-file docker-compose.prod.yml
+```
+
+## 7) Пост-деплой
 
 - [ ] Включен мониторинг логов `api`, `web`, `scheduler`.
 - [ ] Проверена регулярная работа cron задач в `scheduler`.

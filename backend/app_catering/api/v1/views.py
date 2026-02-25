@@ -15,6 +15,11 @@ from rest_framework import permissions, status, views
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 
+from api.request_parsing import (
+    parse_iso_month_query,
+    parse_optional_iso_date_query,
+    parse_required_iso_date_query,
+)
 from app_catering.api.v1.serializers import (
     CanteenMenuSummarySerializer,
     CanteenMenuUpsertSerializer,
@@ -201,14 +206,10 @@ class CanteenMenuAPIView(views.APIView):
         responses={200: TodayMenuSerializer},
     )
     def get(self, request, *args, **kwargs):
-        selected_date = request.query_params.get("date")
-        if selected_date:
-            try:
-                menu_date = date.fromisoformat(selected_date)
-            except ValueError as error:
-                raise ValidationError({"date": "Неверный формат даты. Используй YYYY-MM-DD"}) from error
-        else:
-            menu_date = timezone.localdate()
+        menu_date = parse_optional_iso_date_query(
+            request.query_params.get("date"),
+            field_name="date",
+        )
 
         menu = get_object_or_404(
             DailyMenu.objects.prefetch_related("options"),
@@ -242,18 +243,16 @@ class CanteenMenuListAPIView(views.APIView):
     def get(self, request, *args, **kwargs):
         today = timezone.localdate()
 
-        date_from_raw = request.query_params.get("date_from")
-        date_to_raw = request.query_params.get("date_to")
-
-        try:
-            date_from = date.fromisoformat(date_from_raw) if date_from_raw else today - timedelta(days=7)
-        except ValueError as error:
-            raise ValidationError({"date_from": "Неверный формат даты. Используй YYYY-MM-DD"}) from error
-
-        try:
-            date_to = date.fromisoformat(date_to_raw) if date_to_raw else today + timedelta(days=14)
-        except ValueError as error:
-            raise ValidationError({"date_to": "Неверный формат даты. Используй YYYY-MM-DD"}) from error
+        date_from = parse_optional_iso_date_query(
+            request.query_params.get("date_from"),
+            field_name="date_from",
+            default=today - timedelta(days=7),
+        )
+        date_to = parse_optional_iso_date_query(
+            request.query_params.get("date_to"),
+            field_name="date_to",
+            default=today + timedelta(days=14),
+        )
 
         if date_from > date_to:
             raise ValidationError({"date_from": "date_from не может быть больше date_to"})
@@ -314,14 +313,11 @@ class CanteenMenuEditAPIView(views.APIView):
     )
     @transaction.atomic
     def delete(self, request, *args, **kwargs):
-        selected_date = request.query_params.get("date")
-        if not selected_date:
-            raise ValidationError({"date": "Параметр date обязателен (YYYY-MM-DD)."})
-
-        try:
-            menu_date = date.fromisoformat(selected_date)
-        except ValueError as error:
-            raise ValidationError({"date": "Неверный формат даты. Используй YYYY-MM-DD"}) from error
+        menu_date = parse_required_iso_date_query(
+            request.query_params.get("date"),
+            field_name="date",
+            missing_message="Параметр date обязателен (YYYY-MM-DD).",
+        )
 
         _validate_menu_date_is_editable(menu_date)
 
@@ -380,11 +376,10 @@ class DutyCalendarAPIView(views.APIView):
         responses={200: DutyCalendarResponseSerializer},
     )
     def get(self, request, *args, **kwargs):
-        month_param = request.query_params.get("month") or timezone.localdate().strftime("%Y-%m")
-        try:
-            month_start = date.fromisoformat(f"{month_param}-01")
-        except ValueError as error:
-            raise ValidationError({"month": "Неверный формат месяца. Используй YYYY-MM"}) from error
+        month_param, month_start = parse_iso_month_query(
+            request.query_params.get("month"),
+            field_name="month",
+        )
 
         last_day = monthrange(month_start.year, month_start.month)[1]
         month_end = month_start.replace(day=last_day)

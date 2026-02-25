@@ -5,8 +5,10 @@ import {
   publishCanteenMenuAction
 } from '@/actions/publish-canteen-menu-action'
 import {
+  buildBusinessDateOptions,
   formatIsoDateDdMmYyyy,
   getNowDateTimeLocalStringBishkek,
+  getPreviousBusinessDate,
   isIsoDateWeekend,
   isLocalDateTimeWeekend
 } from '@/lib/bishkek-date'
@@ -121,53 +123,8 @@ function getHourPart(value: string): string {
   return value.slice(11, 13)
 }
 
-function getPreviousBusinessDay(dateValue: string): string {
-  const [year, month, day] = dateValue.split('-').map(Number)
-  const date = new Date(Date.UTC(year, month - 1, day))
-  do {
-    date.setUTCDate(date.getUTCDate() - 1)
-  } while (date.getUTCDay() === 0 || date.getUTCDay() === 6)
-  const y = date.getUTCFullYear()
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(date.getUTCDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
-
 function getDefaultDeadlineForMenuDate(menuDate: string): string {
-  return `${getPreviousBusinessDay(menuDate)}T20:00`
-}
-
-function buildBusinessDateOptions(
-  startDate: string,
-  daysAhead = 120
-): string[] {
-  const [year, month, day] = startDate.split('-').map(Number)
-  if (
-    Number.isNaN(year) ||
-    Number.isNaN(month) ||
-    Number.isNaN(day) ||
-    month < 1 ||
-    month > 12 ||
-    day < 1 ||
-    day > 31
-  ) {
-    return []
-  }
-
-  const cursor = new Date(Date.UTC(year, month - 1, day))
-  const options: string[] = []
-  for (let i = 0; i <= daysAhead; i += 1) {
-    const weekday = cursor.getUTCDay()
-    if (weekday !== 0 && weekday !== 6) {
-      const y = cursor.getUTCFullYear()
-      const m = String(cursor.getUTCMonth() + 1).padStart(2, '0')
-      const d = String(cursor.getUTCDate()).padStart(2, '0')
-      options.push(`${y}-${m}-${d}`)
-    }
-    cursor.setUTCDate(cursor.getUTCDate() + 1)
-  }
-
-  return options
+  return `${getPreviousBusinessDate(menuDate)}T20:00`
 }
 
 function makeOptionDraft(index: number): OptionDraft {

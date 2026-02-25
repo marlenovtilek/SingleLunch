@@ -1,0 +1,71 @@
+name: Deploy Production
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git tag to deploy (defaults to current tag/ref)"
+        required: false
+        type: string
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  tests:
+    name: Test Gate
+    uses: ./.github/workflows/test.yml
+
+  lint:
+    name: Lint Gate
+    uses: ./.github/workflows/lint.yml
+
+  deploy:
+    name: Deploy To Production
+    runs-on: ubuntu-latest
+    needs: [tests, lint]
+    environment: production
+    steps:
+      - name: Resolve deploy ref
+        id: ref
+        run: |
+          if [[ -n "${INPUT_REF}" ]]; then
+            echo "ref=${INPUT_REF}" >> "${GITHUB_OUTPUT}"
+          else
+            echo "ref=${GITHUB_REF_NAME}" >> "${GITHUB_OUTPUT}"
+          fi
+        env:
+          INPUT_REF: ${{ github.event.inputs.ref || '' }}
+
+      - name: Validate deploy secrets
+        run: |
+          set -euo pipefail
+          for key in PROD_SSH_HOST PROD_SSH_USER PROD_SSH_KEY PROD_APP_PATH; do
+            if [[ -z "${!key:-}" ]]; then
+              echo "Missing required secret: ${key}" >&2
+              exit 1
+            fi
+          done
+        env:
+          PROD_SSH_HOST: ${{ secrets.PROD_SSH_HOST }}
+          PROD_SSH_USER: ${{ secrets.PROD_SSH_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          PROD_APP_PATH: ${{ secrets.PROD_APP_PATH }}
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_SSH_PORT || '22' }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.PROD_APP_PATH }}"
+            git fetch --tags --prune origin
+            ./scripts/deploy-prod.sh --ref "${{ steps.ref.outputs.ref }}"

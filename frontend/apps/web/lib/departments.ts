@@ -1,21 +1,21 @@
+import { buildServerApiHeaders, buildServerApiUrl } from '@/lib/server-api'
+
 export type DepartmentOption = {
   id: string
   name: string
 }
 
 export async function getPublicDepartments(): Promise<DepartmentOption[]> {
-  const apiUrl = process.env.API_URL
-  if (!apiUrl) {
+  const departmentsUrl = buildServerApiUrl('/api/departments/')
+  if (!departmentsUrl) {
     return []
   }
 
   try {
-    const response = await fetch(`${apiUrl}/api/departments/`, {
+    const response = await fetch(departmentsUrl, {
       method: 'GET',
       cache: 'no-store',
-      headers: {
-        'X-Forwarded-Proto': 'https'
-      }
+      headers: buildServerApiHeaders()
     })
 
     if (!response.ok) {

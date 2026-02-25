@@ -2,6 +2,7 @@
 
 import { getApiClient } from '@/lib/api'
 import { authOptions, isSessionAuthorized } from '@/lib/auth'
+import { parseApiClientError } from '@/lib/server-api'
 import { ApiError } from '@frontend/types/api'
 import { getServerSession } from 'next-auth'
 
@@ -18,28 +19,6 @@ export type CreateOrderPayload = {
 export type CreateOrderResult =
   | { ok: true; orderId: string | undefined }
   | { ok: false; message: string }
-
-function extractApiErrorMessage(error: ApiError): string {
-  const body = error.body
-  if (typeof body === 'string' && body.length > 0) {
-    return body
-  }
-
-  if (body && typeof body === 'object') {
-    const firstErrorValue = Object.values(body)[0]
-    if (Array.isArray(firstErrorValue) && firstErrorValue.length > 0) {
-      const firstMessage = firstErrorValue[0]
-      if (typeof firstMessage === 'string') {
-        return firstMessage
-      }
-    }
-    if (typeof firstErrorValue === 'string') {
-      return firstErrorValue
-    }
-  }
-
-  return 'Не удалось создать заказ. Проверь данные и попробуй снова.'
-}
 
 export async function createOrderAction(
   payload: CreateOrderPayload
@@ -73,7 +52,13 @@ export async function createOrderAction(
     return { ok: true, orderId: order.id }
   } catch (error) {
     if (error instanceof ApiError) {
-      return { ok: false, message: extractApiErrorMessage(error) }
+      return {
+        ok: false,
+        message: parseApiClientError(
+          error,
+          'Не удалось создать заказ. Проверь данные и попробуй снова.'
+        )
+      }
     }
     return { ok: false, message: 'Сервис недоступен. Попробуй позже.' }
   }

@@ -1,6 +1,11 @@
 import { activateUserAction } from '@/actions/activate-user-action'
 import { getCurrentUserOrRedirect } from '@/lib/account'
 import { formatIsoDateTimeDdMmYyyyBishkek } from '@/lib/bishkek-date'
+import {
+  API_URL_NOT_CONFIGURED_MESSAGE,
+  buildServerApiHeaders,
+  getServerApiBaseUrl
+} from '@/lib/server-api'
 import { redirect } from 'next/navigation'
 
 type PageProps = {
@@ -26,13 +31,13 @@ export default async function UsersPage({ searchParams }: PageProps) {
     return redirect('/menu-today')
   }
 
-  const apiUrl = process.env.API_URL
-  if (!apiUrl) {
+  const apiBaseUrl = getServerApiBaseUrl()
+  if (!apiBaseUrl) {
     return (
       <section className="space-y-3">
         <h1 className="text-lg font-semibold text-slate-900">Пользователи</h1>
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-900">
-          API_URL не настроен.
+          {API_URL_NOT_CONFIGURED_MESSAGE}
         </div>
       </section>
     )
@@ -43,11 +48,9 @@ export default async function UsersPage({ searchParams }: PageProps) {
   const successMessage = params.success ?? ''
 
   try {
-    const response = await fetch(`${apiUrl}/api/users/admin-list/`, {
+    const response = await fetch(`${apiBaseUrl}/api/users/admin-list/`, {
       method: 'GET',
-      headers: {
-        Authorization: `Bearer ${session.accessToken}`
-      },
+      headers: buildServerApiHeaders({ session }),
       cache: 'no-store'
     })
 

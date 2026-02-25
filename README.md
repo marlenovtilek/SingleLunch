@@ -76,9 +76,9 @@ Cron/env settings are in `.env.backend`:
 Manual reminder run:
 
 ```bash
-docker compose exec api uv run -- python manage.py send_order_reminders --dry-run
-docker compose exec api uv run -- python manage.py send_order_reminders --menu-date 2026-02-24
-docker compose exec api uv run -- python manage.py send_order_reminders --menu-date 2026-02-24 --force-resend
+docker compose exec api /.venv/bin/python manage.py send_order_reminders --dry-run
+docker compose exec api /.venv/bin/python manage.py send_order_reminders --menu-date 2026-02-24
+docker compose exec api /.venv/bin/python manage.py send_order_reminders --menu-date 2026-02-24 --force-resend
 ```
 
 ## Notifications setup
@@ -99,24 +99,54 @@ User profile fields:
 - `.env.backend`: `DEBUG=False`, strong `SECRET_KEY`, real hosts/origins, secure postgres password
 - `.env.frontend`: real public URLs, strong `NEXTAUTH_SECRET`
 
-2. Start production stack:
+2. Create release tag and push it:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+git tag v2026.02.25-1
+git push origin v2026.02.25-1
 ```
 
-3. Check services:
+3. On server deploy by tag:
+
+```bash
+git fetch --tags --prune origin
+./scripts/deploy-prod.sh --ref v2026.02.25-1
+```
+
+4. Check services:
 
 ```bash
 docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f
 ```
 
-4. Create superuser:
+5. Create superuser:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec api uv run -- python manage.py createsuperuser
+docker compose -f docker-compose.prod.yml exec api /.venv/bin/python manage.py createsuperuser
 ```
+
+### Nginx topology
+
+`docker-compose.prod.yml` binds container nginx to `127.0.0.1:18080` by default.
+
+- Recommended: external host nginx (80/443) proxies to `127.0.0.1:18080`.
+- If you need direct binding, override:
+
+```bash
+NGINX_BIND_HOST=0.0.0.0 NGINX_BIND_PORT=80 docker compose -f docker-compose.prod.yml up -d --build
+```
+
+### GitHub auto deploy
+
+Workflow `.github/workflows/deploy-prod.yml` deploys on tag `v*` (or manual run).
+
+Required GitHub Secrets:
+- `PROD_SSH_HOST`
+- `PROD_SSH_PORT` (optional, default `22`)
+- `PROD_SSH_USER`
+- `PROD_SSH_KEY`
+- `PROD_APP_PATH` (path to repo on server)
 
 ## Production preflight
 
@@ -132,6 +162,45 @@ Full preflight (with runtime checks against running prod stack):
 scripts/prod-preflight.sh --runtime
 ```
 
+Post-deploy health + role smoke:
+
+```bash
+scripts/prod-health-check.sh --base-url https://lunch.trade.kg
+```
+
+Optional login smoke with real credentials:
+
+```bash
+SMOKE_LOGIN_USERNAME=demo SMOKE_LOGIN_PASSWORD=demo123 \
+scripts/prod-health-check.sh --base-url https://lunch.trade.kg
+```
+
+## Backup / restore
+
+Create backup:
+
+```bash
+scripts/db-backup.sh --compose-file docker-compose.prod.yml
+```
+
+Check restore viability into temporary DB:
+
+```bash
+scripts/db-restore-check.sh --compose-file docker-compose.prod.yml --file backups/postgres/<file>.sql.gz
+```
+
+Restore (destructive):
+
+```bash
+scripts/db-restore.sh --compose-file docker-compose.prod.yml --file backups/postgres/<file>.sql.gz --yes
+```
+
+Rollback release:
+
+```bash
+scripts/rollback-prod.sh --compose-file docker-compose.prod.yml
+```
+
 Detailed step-by-step checklist:
 - `PROD_CHECKLIST.md`
 
@@ -143,8 +212,8 @@ Health endpoint:
 Django checks:
 
 ```bash
-docker compose exec api uv run -- python manage.py check
-docker compose exec api uv run -- python manage.py check --deploy
+docker compose exec api /.venv/bin/python manage.py check
+docker compose exec api /.venv/bin/python manage.py check --deploy
 ```
 
 ## Tests and build
@@ -152,7 +221,7 @@ docker compose exec api uv run -- python manage.py check --deploy
 Backend tests:
 
 ```bash
-docker compose exec api uv run -- pytest
+docker compose exec api /.venv/bin/pytest
 ```
 
 Frontend lint/build:

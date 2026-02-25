@@ -1,6 +1,12 @@
 'use server'
 
 import { authOptions, isSessionAuthorized } from '@/lib/auth'
+import {
+  API_URL_NOT_CONFIGURED_MESSAGE,
+  buildServerApiHeaders,
+  getServerApiBaseUrl,
+  parseApiErrorMessage
+} from '@/lib/server-api'
 import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 
@@ -12,31 +18,15 @@ function buildUsersPageUrl(messageKey?: 'error' | 'success', message?: string) {
   return params.size > 0 ? `/users?${params.toString()}` : '/users'
 }
 
-function parseApiErrorMessage(body: unknown): string {
-  if (typeof body === 'string' && body.length > 0) {
-    return body
-  }
-  if (body && typeof body === 'object') {
-    const firstValue = Object.values(body)[0]
-    if (Array.isArray(firstValue) && typeof firstValue[0] === 'string') {
-      return firstValue[0]
-    }
-    if (typeof firstValue === 'string') {
-      return firstValue
-    }
-  }
-  return 'Не удалось активировать пользователя.'
-}
-
 export async function activateUserAction(formData: FormData) {
   const session = await getServerSession(authOptions)
   if (!isSessionAuthorized(session)) {
     redirect('/login')
   }
 
-  const apiUrl = process.env.API_URL
-  if (!apiUrl) {
-    redirect(buildUsersPageUrl('error', 'API_URL не настроен.'))
+  const apiBaseUrl = getServerApiBaseUrl()
+  if (!apiBaseUrl) {
+    redirect(buildUsersPageUrl('error', API_URL_NOT_CONFIGURED_MESSAGE))
   }
 
   const userId = String(formData.get('user_id') ?? '').trim()
@@ -46,11 +36,9 @@ export async function activateUserAction(formData: FormData) {
     )
   }
 
-  const response = await fetch(`${apiUrl}/api/users/${userId}/activate/`, {
+  const response = await fetch(`${apiBaseUrl}/api/users/${userId}/activate/`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${session.accessToken}`
-    },
+    headers: buildServerApiHeaders({ session }),
     cache: 'no-store'
   })
 
@@ -58,7 +46,7 @@ export async function activateUserAction(formData: FormData) {
     let message = 'Не удалось активировать пользователя.'
     try {
       const body = await response.json()
-      message = parseApiErrorMessage(body)
+      message = parseApiErrorMessage(body, message)
     } catch {
       // ignore json parsing errors
     }

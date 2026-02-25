@@ -1,3 +1,5 @@
+import { buildServerApiHeaders, buildServerApiUrl } from '@/lib/server-api'
+
 type Branding = {
   projectName: string
   logoUrl: string | null
@@ -13,18 +15,16 @@ const fallbackBranding: Branding = {
 }
 
 export async function getBranding(): Promise<Branding> {
-  const apiUrl = process.env.API_URL
-  if (!apiUrl) {
+  const brandingUrl = buildServerApiUrl('/api/branding/')
+  if (!brandingUrl) {
     return fallbackBranding
   }
 
   try {
-    const response = await fetch(`${apiUrl}/api/branding/`, {
+    const response = await fetch(brandingUrl, {
       method: 'GET',
       cache: 'no-store',
-      headers: {
-        'X-Forwarded-Proto': 'https'
-      }
+      headers: buildServerApiHeaders()
     })
     if (!response.ok) {
       return fallbackBranding

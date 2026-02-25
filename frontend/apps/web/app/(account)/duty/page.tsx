@@ -1,9 +1,17 @@
 import { upsertDutyAssignmentAction } from '@/actions/upsert-duty-assignment-action'
-import { canManageCanteen, getCurrentUserOrRedirect } from '@/lib/account'
+import { getCurrentUserOrRedirect } from '@/lib/account'
 import {
+  buildBusinessMonthDays,
   formatIsoDateDdMmYyyy,
-  getCurrentMonthBishkek
+  getCurrentMonthBishkek,
+  getIsoWeekdayShortLabel,
+  normalizeIsoMonth
 } from '@/lib/bishkek-date'
+import {
+  API_URL_NOT_CONFIGURED_MESSAGE,
+  buildServerApiHeaders,
+  getServerApiBaseUrl
+} from '@/lib/server-api'
 import { redirect } from 'next/navigation'
 
 type PageProps = {
@@ -29,46 +37,9 @@ type DutyAssignee = {
   full_name: string
 }
 
-function normalizeMonth(value?: string): string {
-  if (!value || !/^\d{4}-\d{2}$/.test(value)) {
-    return getCurrentMonthBishkek()
-  }
-  const month = Number(value.slice(5, 7))
-  if (month < 1 || month > 12) {
-    return getCurrentMonthBishkek()
-  }
-  return value
-}
-
-function getDaysInMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month, 0)).getUTCDate()
-}
-
-function buildMonthDays(month: string): string[] {
-  const year = Number(month.slice(0, 4))
-  const monthNum = Number(month.slice(5, 7))
-  const daysInMonth = getDaysInMonth(year, monthNum)
-  const days: string[] = []
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    const dateValue = `${month}-${String(day).padStart(2, '0')}`
-    const weekday = new Date(`${dateValue}T00:00:00Z`).getUTCDay()
-    if (weekday === 0 || weekday === 6) {
-      continue
-    }
-    days.push(dateValue)
-  }
-  return days
-}
-
-function getWeekdayLabel(dateValue: string): string {
-  const date = new Date(`${dateValue}T00:00:00Z`)
-  const labels = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб']
-  return labels[date.getUTCDay()]
-}
-
 export default async function DutyPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const selectedMonth = normalizeMonth(params.month)
+  const selectedMonth = normalizeIsoMonth(params.month, getCurrentMonthBishkek())
   const { session, user: me } = await getCurrentUserOrRedirect()
   const isAdmin = Boolean(me.is_staff || me.is_superuser)
 
@@ -78,13 +49,13 @@ export default async function DutyPage({ searchParams }: PageProps) {
 
   const canManageDuty = isAdmin
 
-  const apiUrl = process.env.API_URL
-  if (!apiUrl) {
+  const apiBaseUrl = getServerApiBaseUrl()
+  if (!apiBaseUrl) {
     return (
       <section className="space-y-3">
         <h1 className="text-lg font-semibold text-slate-900">Дежурство</h1>
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-900">
-          API_URL не настроен.
+          {API_URL_NOT_CONFIGURED_MESSAGE}
         </div>
       </section>
     )
@@ -96,12 +67,10 @@ export default async function DutyPage({ searchParams }: PageProps) {
 
   try {
     const response = await fetch(
-      `${apiUrl}/api/v1/duty/?month=${selectedMonth}`,
+      `${apiBaseUrl}/api/v1/duty/?month=${selectedMonth}`,
       {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`
-        },
+        headers: buildServerApiHeaders({ session }),
         cache: 'no-store'
       }
     )
@@ -119,11 +88,9 @@ export default async function DutyPage({ searchParams }: PageProps) {
 
   if (canManageDuty) {
     try {
-      const response = await fetch(`${apiUrl}/api/v1/duty/assignees/`, {
+      const response = await fetch(`${apiBaseUrl}/api/v1/duty/assignees/`, {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`
-        },
+        headers: buildServerApiHeaders({ session }),
         cache: 'no-store'
       })
       if (response.ok) {
@@ -137,7 +104,7 @@ export default async function DutyPage({ searchParams }: PageProps) {
   const assignmentsByDate = new Map(
     calendar.assignments.map((assignment) => [assignment.date, assignment])
   )
-  const monthDays = buildMonthDays(selectedMonth)
+  const monthDays = buildBusinessMonthDays(selectedMonth)
 
   return (
     <section className="space-y-2.5">
@@ -236,7 +203,7 @@ export default async function DutyPage({ searchParams }: PageProps) {
                     {formatIsoDateDdMmYyyy(dateValue)}
                   </p>
                   <p className="text-[11px] text-slate-500">
-                    {getWeekdayLabel(dateValue)} ·{' '}
+                    {getIsoWeekdayShortLabel(dateValue)} ·{' '}
                     {assignment
                       ? `@${assignment.assignee_username}`
                       : 'Не назначено'}
