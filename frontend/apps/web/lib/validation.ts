@@ -26,12 +26,22 @@ const registerFormSchema = z
     username: z.string().min(1, 'Логин обязателен'),
     birthDate: z
       .string()
-      .refine((value) => isValidBirthDate(value), 'Некорректная дата рождения'),
+      .refine(
+        (value) => value === '' || isValidBirthDate(value),
+        'Некорректная дата рождения'
+      )
+      .optional()
+      .or(z.literal('')),
     phoneNumber: z
       .string()
-      .min(9, 'Номер телефона обязателен')
-      .regex(/^[0-9+\-() ]+$/, 'Некорректный формат номера телефона'),
-    department: z.string().uuid('Выберите департамент'),
+      .regex(/^[0-9+\-() ]*$/, 'Некорректный формат номера телефона')
+      .refine(
+        (value) => value === '' || value.replace(/\D/g, '').length >= 9,
+        'Некорректный формат номера телефона'
+      )
+      .optional()
+      .or(z.literal('')),
+    department: z.string().uuid('Выберите департамент').optional().or(z.literal('')),
     password: z.string().min(8, 'Пароль должен быть не менее 8 символов'),
     passwordRetype: z.string().min(8, 'Пароль должен быть не менее 8 символов')
   })

@@ -2,7 +2,11 @@
 
 import { getApiClient } from '@/lib/api'
 import type { registerFormSchema } from '@/lib/validation'
-import { ApiError, type UserCreateError } from '@frontend/types/api'
+import {
+  ApiError,
+  type UserCreate,
+  type UserCreateError
+} from '@frontend/types/api'
 import type { z } from 'zod'
 
 export type RegisterFormSchema = z.infer<typeof registerFormSchema>
@@ -13,14 +17,30 @@ export async function registerAction(
   try {
     const apiClient = await getApiClient()
 
-    await apiClient.users.usersCreate({
+    const payload: {
+      username: string
+      password: string
+      password_retype: string
+      birth_date?: string
+      phone_number?: string
+      department?: string
+    } = {
       username: data.username,
-      birth_date: data.birthDate,
-      phone_number: data.phoneNumber,
-      department: data.department,
       password: data.password,
       password_retype: data.passwordRetype
-    })
+    }
+
+    if (data.birthDate) {
+      payload.birth_date = data.birthDate
+    }
+    if (data.phoneNumber) {
+      payload.phone_number = data.phoneNumber
+    }
+    if (data.department) {
+      payload.department = data.department
+    }
+
+    await apiClient.users.usersCreate(payload as unknown as UserCreate)
 
     return true
   } catch (error) {

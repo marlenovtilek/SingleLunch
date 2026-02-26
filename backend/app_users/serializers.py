@@ -241,11 +241,17 @@ class UserCreateSerializer(serializers.ModelSerializer):
     password_retype = serializers.CharField(
         style={"input_type": "password"}, write_only=True
     )
-    birth_date = serializers.DateField(required=True)
-    phone_number = serializers.CharField(required=True, max_length=20)
+    birth_date = serializers.DateField(required=False, allow_null=True)
+    phone_number = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        max_length=20,
+    )
     department = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(),
-        required=True,
+        required=False,
+        allow_null=True,
     )
 
     default_error_messages = {
@@ -267,6 +273,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_birth_date(self, value):
+        if value is None:
+            return value
         today = timezone.localdate()
         if value.year < 1900 or value > today:
             raise serializers.ValidationError(
@@ -275,6 +283,8 @@ class UserCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone_number(self, value):
+        if value in (None, ""):
+            return None
         allowed_chars = set("0123456789+ -()")
         if any(char not in allowed_chars for char in value):
             raise serializers.ValidationError(

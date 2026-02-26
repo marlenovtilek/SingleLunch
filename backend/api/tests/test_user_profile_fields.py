@@ -39,6 +39,26 @@ def test_user_register_with_profile_fields(api_client):
 
 
 @pytest.mark.django_db
+def test_user_register_with_only_login_and_password(api_client):
+    response = api_client.post(
+        reverse("api-users-list"),
+        {
+            "username": "employee_register_minimal",
+            "password": "StrongPassword123!",
+            "password_retype": "StrongPassword123!",
+        },
+        format="json",
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+
+    user = User.objects.get(username="employee_register_minimal")
+    assert user.department is None
+    assert user.birth_date is None
+    assert user.phone_number is None
+    assert user.is_active is False
+
+
+@pytest.mark.django_db
 def test_user_can_update_messaging_ids_from_profile(api_client):
     user = User.objects.create_user(
         username="employee_profile_ids",

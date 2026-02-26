@@ -65,28 +65,28 @@ export function RegisterForm({
           type="date"
           register={register('birthDate')}
           formState={formState}
-          label="Дата рождения"
+          label="Дата рождения (опционально)"
         />
 
         <TextField
           type="text"
           register={register('phoneNumber')}
           formState={formState}
-          label="Номер телефона"
+          label="Номер телефона (опционально)"
           placeholder="+996 555 123 456"
         />
 
         <label className="mb-3 flex flex-col">
           <span className="mb-1.5 block text-xs font-medium leading-none text-slate-700">
-            Департамент
+            Департамент (опционально)
           </span>
           <select
             className="block h-9 max-w-lg rounded-md bg-white px-3 text-sm font-medium shadow-sm outline outline-1 outline-gray-900/10"
             {...register('department')}
             defaultValue=""
           >
-            <option value="" disabled>
-              Выбери департамент
+            <option value="">
+              Не выбран
             </option>
             {departments.map((department) => (
               <option key={department.id} value={department.id}>
