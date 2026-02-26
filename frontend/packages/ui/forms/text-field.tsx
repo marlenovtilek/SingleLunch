@@ -18,7 +18,8 @@ export function TextField({
   formState,
   disabled,
   allowPasswordToggle = false,
-  compact = false
+  compact = false,
+  inline = false
 }: {
   type: 'text' | 'password' | 'number' | 'date'
   label: string
@@ -28,6 +29,7 @@ export function TextField({
   disabled?: boolean
   allowPasswordToggle?: boolean
   compact?: boolean
+  inline?: boolean
 }): React.ReactElement {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const hasError = formState.errors[register.name]
@@ -38,19 +40,21 @@ export function TextField({
     <label
       className={twMerge(
         'mb-3 flex flex-col last:mb-0',
-        compact && 'mb-2'
+        compact && 'mb-2',
+        inline && 'mb-2 flex-row flex-wrap items-center gap-2'
       )}
     >
       <span
         className={twMerge(
           'mb-1.5 block text-xs font-medium leading-none text-slate-700',
-          compact && 'mb-1 text-[11px]'
+          compact && 'mb-1 text-[11px]',
+          inline && 'mb-0 w-24 shrink-0'
         )}
       >
         {label}
       </span>
 
-      <div className="relative max-w-lg">
+      <div className={twMerge('relative max-w-lg', inline && 'max-w-none flex-1')}>
         <input
           type={currentType}
           placeholder={placeholder}
@@ -86,7 +90,13 @@ export function TextField({
       </div>
 
       {hasError && (
-        <div className={twMerge('mt-1 text-xs text-red-600', compact && 'mt-0.5 text-[11px]')}>
+        <div
+          className={twMerge(
+            'mt-1 text-xs text-red-600',
+            compact && 'mt-0.5 text-[11px]',
+            inline && 'mt-0 ml-[6.5rem] w-full'
+          )}
+        >
           {formState.errors[register.name]?.message?.toString()}
         </div>
       )}

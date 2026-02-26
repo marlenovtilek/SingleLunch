@@ -15,13 +15,6 @@ import type { z } from 'zod'
 
 export type ProfileFormSchema = z.infer<typeof profileFormSchema>
 
-function roleLabel(role: UserCurrent['role']) {
-  if (role === 'CANTEEN') {
-    return 'Представитель столовой'
-  }
-  return 'Сотрудник'
-}
-
 export function ProfileForm({
   currentUser,
   onSubmitHandler,
@@ -59,25 +52,6 @@ export function ProfileForm({
         <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">
           Личный кабинет
         </h1>
-        <div className="mt-2 grid grid-cols-2 gap-1.5 sm:mt-3 sm:gap-2">
-          <div className="rounded-lg border border-slate-200 bg-white/90 p-2">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">
-              Роль
-            </p>
-            <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:text-sm">
-              {roleLabel(currentUser.role)}
-            </p>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-white/90 p-2">
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">
-              Права
-            </p>
-            <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:text-sm">
-              Staff: {currentUser.is_staff ? 'Да' : 'Нет'} · Super:{' '}
-              {currentUser.is_superuser ? 'Да' : 'Нет'}
-            </p>
-          </div>
-        </div>
       </header>
 
       <form
@@ -105,7 +79,7 @@ export function ProfileForm({
       >
         {success && <SuccessMessage>Профиль успешно обновлен</SuccessMessage>}
 
-        <div className="grid gap-2 min-[390px]:grid-cols-2 sm:gap-3">
+        <div className="grid gap-2 lg:grid-cols-2 sm:gap-3">
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Основные данные
@@ -117,6 +91,7 @@ export function ProfileForm({
               formState={formState}
               disabled={!isEditing}
               compact
+              inline
             />
 
             <TextField
@@ -126,6 +101,7 @@ export function ProfileForm({
               formState={formState}
               disabled={!isEditing}
               compact
+              inline
             />
 
             <TextField
@@ -135,14 +111,15 @@ export function ProfileForm({
               formState={formState}
               disabled={!isEditing}
               compact
+              inline
             />
 
-            <label className="mb-2 flex flex-col">
-              <span className="mb-1 block text-[11px] font-medium leading-none text-slate-700 sm:text-xs">
+            <label className="mb-2 flex flex-row flex-wrap items-center gap-2">
+              <span className="w-24 shrink-0 text-[11px] font-medium leading-none text-slate-700 sm:text-xs">
                 Департамент
               </span>
               <select
-                className="block h-8 max-w-lg rounded-md bg-white px-2.5 text-xs font-medium shadow-sm outline outline-1 outline-gray-900/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:h-9 sm:px-3 sm:text-sm"
+                className="block h-8 max-w-none flex-1 rounded-md bg-white px-2.5 text-xs font-medium shadow-sm outline outline-1 outline-gray-900/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:h-9 sm:px-3 sm:text-sm"
                 {...register('department')}
                 disabled={!isEditing}
                 defaultValue={currentUser.department || ''}
@@ -155,7 +132,7 @@ export function ProfileForm({
                 ))}
               </select>
               {formState.errors.department && (
-                <div className="mt-1 text-xs text-red-600">
+                <div className="mt-0 w-full text-xs text-red-600 [margin-left:6.5rem]">
                   {formState.errors.department.message?.toString()}
                 </div>
               )}
@@ -173,6 +150,7 @@ export function ProfileForm({
               formState={formState}
               disabled={!isEditing}
               compact
+              inline
             />
 
             <TextField
@@ -182,8 +160,9 @@ export function ProfileForm({
               formState={formState}
               disabled={!isEditing}
               compact
+              inline
             />
-            <p className="-mt-1 mb-2 text-[10px] text-slate-500 sm:mb-3 sm:text-[11px]">
+            <p className="-mt-1 mb-2 text-[10px] text-slate-500 sm:mb-3 sm:text-[11px] [margin-left:6.5rem]">
               Для уведомлений подпишись на бота:{' '}
               <a
                 href={telegramBotUrl}
@@ -202,6 +181,7 @@ export function ProfileForm({
               formState={formState}
               disabled={!isEditing}
               compact
+              inline
             />
           </div>
         </div>
