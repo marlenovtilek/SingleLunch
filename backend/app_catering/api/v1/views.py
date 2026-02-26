@@ -67,12 +67,13 @@ def _schedule_immediate_order_reminder(menu: DailyMenu) -> None:
 
 
 def _validate_menu_date_is_editable(menu_date: date) -> None:
-    if menu_date < timezone.localdate():
+    min_editable_date = timezone.localdate() - timedelta(days=1)
+    if menu_date < min_editable_date:
         raise ValidationError(
             {
                 "date": (
-                    "Нельзя редактировать меню за прошедшую дату. "
-                    "Выбери сегодняшнюю или будущую дату."
+                    "Нельзя редактировать меню за эту дату. "
+                    "Доступны: вчера, сегодня и будущие даты."
                 )
             }
         )

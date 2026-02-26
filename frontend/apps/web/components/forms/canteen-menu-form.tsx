@@ -5,10 +5,12 @@ import {
   publishCanteenMenuAction
 } from '@/actions/publish-canteen-menu-action'
 import {
+  addDaysToIsoDate,
   buildBusinessDateOptions,
   formatIsoDateDdMmYyyy,
   getNowDateTimeLocalStringBishkek,
   getPreviousBusinessDate,
+  getTodayDateStringBishkek,
   isIsoDateWeekend,
   isLocalDateTimeWeekend
 } from '@/lib/bishkek-date'
@@ -127,6 +129,30 @@ function getDefaultDeadlineForMenuDate(menuDate: string): string {
   return `${getPreviousBusinessDate(menuDate)}T20:00`
 }
 
+function formatIsoDateDdMmYy(isoDate: string): string {
+  const parts = isoDate.split('-')
+  if (parts.length !== 3) {
+    return isoDate
+  }
+  const [year, month, day] = parts
+  if (year.length !== 4 || month.length !== 2 || day.length !== 2) {
+    return isoDate
+  }
+  return `${day}-${month}-${year.slice(-2)}`
+}
+
+function buildHourRange(startHour: number): string[] {
+  if (!Number.isFinite(startHour)) {
+    return []
+  }
+  const safeStart = Math.max(0, Math.min(23, Math.floor(startHour)))
+  const hours: string[] = []
+  for (let hour = safeStart; hour <= 23; hour += 1) {
+    hours.push(String(hour).padStart(2, '0'))
+  }
+  return hours
+}
+
 function makeOptionDraft(index: number): OptionDraft {
   return {
     id: `option-${index}`,
@@ -148,18 +174,18 @@ function mapMenuToDraft(menu: TodayMenu | null): OptionDraft[] {
 export function CanteenMenuForm({
   mode,
   selectedDate,
+  quickDateOptions,
   currentMenu,
   creationLocked,
   lockReason,
-  minMenuDate,
   lunchPrice
 }: {
   mode: 'create' | 'edit'
   selectedDate: string
+  quickDateOptions: string[]
   currentMenu: TodayMenu | null
   creationLocked: boolean
   lockReason: 'past-date' | 'already-exists' | 'weekend-date' | null
-  minMenuDate?: string
   lunchPrice: string
 }) {
   const router = useRouter()
@@ -167,6 +193,28 @@ export function CanteenMenuForm({
   const isCreateMode = mode === 'create'
   const isEditMode = mode === 'edit'
   const [result, setResult] = useState<PublishCanteenMenuResult | null>(null)
+  const todayDate = getTodayDateStringBishkek()
+  const yesterdayDate = addDaysToIsoDate(todayDate, -1)
+  const tomorrowDate = addDaysToIsoDate(todayDate, 1)
+  const menuDatePreset =
+    selectedDate < todayDate
+      ? 'past'
+      : selectedDate === todayDate
+        ? 'today'
+        : selectedDate === tomorrowDate
+          ? 'tomorrow'
+          : 'custom'
+  const fixedDeadlineDate =
+    menuDatePreset === 'past'
+      ? selectedDate
+      : menuDatePreset === 'today'
+        ? todayDate
+        : menuDatePreset === 'tomorrow'
+          ? todayDate
+          : null
+  const isDeadlineDateLocked = fixedDeadlineDate !== null
+  const isDeadlineHourLocked = menuDatePreset === 'past'
+  const enforceFutureDeadline = selectedDate >= todayDate
   const minSelectionDeadlineLocal = ceilToNextHour(
     getNowDateTimeLocalStringBishkek()
   )
@@ -176,7 +224,11 @@ export function CanteenMenuForm({
         ? toLocalDatetimeInputValue(currentMenu.selection_deadline)
         : getDefaultDeadlineForMenuDate(selectedDate)
       const normalizedDeadline = floorToHour(rawDeadline)
-      if (isCreateMode && normalizedDeadline < minSelectionDeadlineLocal) {
+      if (
+        isCreateMode &&
+        enforceFutureDeadline &&
+        normalizedDeadline < minSelectionDeadlineLocal
+      ) {
         return minSelectionDeadlineLocal
       }
       return normalizedDeadline
@@ -189,31 +241,71 @@ export function CanteenMenuForm({
     () => `singlelunch:canteen-menu-draft:${selectedDate}`,
     [selectedDate]
   )
-  const businessDateOptions = useMemo(() => {
-    if (!isCreateMode || !minMenuDate) {
-      return []
-    }
-    return buildBusinessDateOptions(minMenuDate)
-  }, [isCreateMode, minMenuDate])
 
   const totalPositions = useMemo(() => {
     return options.filter((option) => option.name.trim()).length
   }, [options])
-  const selectionDeadlineDate = getDatePart(selectionDeadlineLocal)
+  const rawSelectionDeadlineDate = getDatePart(selectionDeadlineLocal)
+  const selectionDeadlineDate = isDeadlineDateLocked
+    ? fixedDeadlineDate
+    : rawSelectionDeadlineDate
   const selectionDeadlineHour = getHourPart(selectionDeadlineLocal)
   const availableDeadlineHours = useMemo(() => {
+    if (menuDatePreset === 'past') {
+      return [selectionDeadlineHour || '20']
+    }
+
+    if (menuDatePreset === 'today') {
+      const minHour =
+        getDatePart(minSelectionDeadlineLocal) === todayDate
+          ? Number(getHourPart(minSelectionDeadlineLocal))
+          : 0
+      return buildHourRange(minHour)
+    }
+
+    if (menuDatePreset === 'tomorrow') {
+      const minHour =
+        getDatePart(minSelectionDeadlineLocal) === todayDate
+          ? Number(getHourPart(minSelectionDeadlineLocal))
+          : 0
+      const preferredHours = ['12', '14', '16', '18', '20'].filter(
+        (hour) => Number(hour) >= minHour
+      )
+      if (preferredHours.length > 0) {
+        return preferredHours
+      }
+      return buildHourRange(minHour)
+    }
+
     const hours: string[] = []
     for (let hour = 0; hour <= 23; hour += 1) {
       const hourValue = String(hour).padStart(2, '0')
+      if (!enforceFutureDeadline) {
+        hours.push(hourValue)
+        continue
+      }
       const candidate = `${selectionDeadlineDate}T${hourValue}:00`
       if (candidate >= minSelectionDeadlineLocal) {
         hours.push(hourValue)
       }
     }
     return hours
-  }, [selectionDeadlineDate, minSelectionDeadlineLocal])
+  }, [
+    enforceFutureDeadline,
+    menuDatePreset,
+    minSelectionDeadlineLocal,
+    selectionDeadlineDate,
+    selectionDeadlineHour,
+    todayDate
+  ])
   const deadlineDateOptions = useMemo(() => {
-    const startDate = getDatePart(minSelectionDeadlineLocal)
+    if (isDeadlineDateLocked && fixedDeadlineDate) {
+      return [fixedDeadlineDate]
+    }
+
+    const startDate = enforceFutureDeadline
+      ? getDatePart(minSelectionDeadlineLocal)
+      : addDaysToIsoDate(selectedDate, -7)
     const options = buildBusinessDateOptions(startDate)
     if (
       selectionDeadlineDate &&
@@ -223,7 +315,32 @@ export function CanteenMenuForm({
       return [selectionDeadlineDate, ...options]
     }
     return options
-  }, [minSelectionDeadlineLocal, selectionDeadlineDate])
+  }, [
+    enforceFutureDeadline,
+    fixedDeadlineDate,
+    isDeadlineDateLocked,
+    minSelectionDeadlineLocal,
+    selectedDate,
+    selectionDeadlineDate
+  ])
+
+  useEffect(() => {
+    if (!fixedDeadlineDate) {
+      return
+    }
+    if (rawSelectionDeadlineDate === fixedDeadlineDate) {
+      return
+    }
+    const fallbackHour =
+      selectionDeadlineHour ||
+      (menuDatePreset === 'tomorrow' ? '20' : menuDatePreset === 'past' ? '20' : '00')
+    setSelectionDeadlineLocal(`${fixedDeadlineDate}T${fallbackHour}:00`)
+  }, [
+    fixedDeadlineDate,
+    menuDatePreset,
+    rawSelectionDeadlineDate,
+    selectionDeadlineHour
+  ])
 
   useEffect(() => {
     if (!isCreateMode) {
@@ -260,7 +377,8 @@ export function CanteenMenuForm({
           draft.selectionDeadlineLocal
         )
         setSelectionDeadlineLocal(
-          normalizedDraftDeadline < minSelectionDeadlineLocal
+          enforceFutureDeadline &&
+            normalizedDraftDeadline < minSelectionDeadlineLocal
             ? minSelectionDeadlineLocal
             : normalizedDraftDeadline
         )
@@ -271,7 +389,12 @@ export function CanteenMenuForm({
     } catch {
       // ignore broken local draft payload
     }
-  }, [draftStorageKey, isCreateMode, minSelectionDeadlineLocal])
+  }, [
+    draftStorageKey,
+    enforceFutureDeadline,
+    isCreateMode,
+    minSelectionDeadlineLocal
+  ])
 
   useEffect(() => {
     if (!isCreateMode) {
@@ -308,19 +431,14 @@ export function CanteenMenuForm({
     if (!nextDate) {
       return
     }
-    if (isCreateMode && isIsoDateWeekend(nextDate)) {
-      setResult({
-        ok: false,
-        message:
-          'Дата меню не может быть в выходной день (суббота/воскресенье).'
-      })
-      return
-    }
     setResult(null)
     router.push(`/canteen-menu-today?date=${nextDate}`)
   }
 
   const onDeadlineDateChange = (nextDate: string) => {
+    if (isDeadlineDateLocked) {
+      return
+    }
     if (!nextDate) {
       return
     }
@@ -334,17 +452,19 @@ export function CanteenMenuForm({
     }
 
     const candidate = `${nextDate}T${selectionDeadlineHour || '00'}:00`
-    if (candidate < minSelectionDeadlineLocal) {
+    if (enforceFutureDeadline && candidate < minSelectionDeadlineLocal) {
       for (let hour = 0; hour <= 23; hour += 1) {
         const hourValue = String(hour).padStart(2, '0')
         const nextCandidate = `${nextDate}T${hourValue}:00`
-        if (nextCandidate >= minSelectionDeadlineLocal) {
+        if (!enforceFutureDeadline || nextCandidate >= minSelectionDeadlineLocal) {
           setResult(null)
           setSelectionDeadlineLocal(nextCandidate)
           return
         }
       }
-      setSelectionDeadlineLocal(minSelectionDeadlineLocal)
+      setSelectionDeadlineLocal(
+        enforceFutureDeadline ? minSelectionDeadlineLocal : candidate
+      )
       setResult(null)
       return
     }
@@ -378,10 +498,21 @@ export function CanteenMenuForm({
       return
     }
 
-    if (selectionDeadlineLocal < minSelectionDeadlineLocal) {
+    if (
+      enforceFutureDeadline &&
+      selectionDeadlineLocal < minSelectionDeadlineLocal
+    ) {
       setResult({
         ok: false,
         message: 'Дедлайн выбора не может быть в прошлом.'
+      })
+      return
+    }
+
+    if (selectionDeadlineDate > selectedDate) {
+      setResult({
+        ok: false,
+        message: 'Дедлайн выбора не может быть позже даты меню.'
       })
       return
     }
@@ -493,65 +624,80 @@ export function CanteenMenuForm({
         </div>
       )}
 
-      <div className="grid gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-sm md:grid-cols-2 md:gap-2 md:p-2.5">
+      <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-2 shadow-sm md:p-2.5">
         <div className="space-y-1 text-xs font-medium text-slate-700">
-          <label htmlFor="menu-date-select">Дата меню</label>
-          {isCreateMode ? (
-            <select
-              id="menu-date-select"
-              value={isIsoDateWeekend(selectedDate) ? '' : selectedDate}
-              onChange={(event) => onDateChange(event.target.value)}
-              className="h-7 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring md:h-8"
-            >
-              <option value="" disabled>
-                Выбери рабочий день
-              </option>
-              {businessDateOptions.map((dateValue) => (
-                <option key={dateValue} value={dateValue}>
-                  {formatIsoDateDdMmYyyy(dateValue)}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              id="menu-date-select"
-              type="date"
-              value={selectedDate}
-              onChange={(event) => onDateChange(event.target.value)}
-              disabled
-              className="h-7 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring md:h-8"
-            />
-          )}
+          <span>Дата меню</span>
+          <div className="grid grid-cols-3 gap-1">
+            {quickDateOptions.map((dateValue) => (
+              <button
+                key={dateValue}
+                type="button"
+                onClick={() => onDateChange(dateValue)}
+                title={`${formatIsoDateDdMmYyyy(dateValue)}`}
+                className={`rounded-md border px-1.5 py-1 text-center transition md:px-2 ${
+                  selectedDate === dateValue
+                    ? 'border-slate-900 bg-slate-900 text-white'
+                    : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                <span className="block text-[10px] font-semibold leading-4 md:text-xs">
+                  {dateValue === yesterdayDate
+                    ? 'вчера'
+                    : dateValue === todayDate
+                      ? 'сегодня'
+                      : dateValue === tomorrowDate
+                        ? 'завтра'
+                        : 'дата'}
+                </span>
+                <span className="block text-[10px] leading-4 opacity-90 md:text-[11px]">
+                  ({formatIsoDateDdMmYy(dateValue)})
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="text-[11px] text-slate-500">
+            Выбрано: {formatIsoDateDdMmYyyy(selectedDate)}
+          </p>
         </div>
 
         <div className="space-y-1 text-xs font-medium text-slate-700">
           <label htmlFor="deadline-date-select">Дедлайн выбора</label>
           <div className="grid grid-cols-[1fr_88px] gap-1">
-            <select
-              id="deadline-date-select"
-              value={
-                isIsoDateWeekend(selectionDeadlineDate)
-                  ? ''
-                  : selectionDeadlineDate
-              }
-              onChange={(event) => onDeadlineDateChange(event.target.value)}
-              className="h-7 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring md:h-8"
-            >
-              <option value="" disabled>
-                Выбери рабочий день
-              </option>
-              {deadlineDateOptions.map((dateValue) => (
-                <option key={dateValue} value={dateValue}>
-                  {formatIsoDateDdMmYyyy(dateValue)}
+            {isDeadlineDateLocked ? (
+              <input
+                id="deadline-date-select"
+                type="text"
+                value={formatIsoDateDdMmYyyy(selectionDeadlineDate)}
+                readOnly
+                className="h-7 w-full rounded-md border border-slate-300 bg-slate-50 px-2 text-xs text-slate-700 md:h-8"
+              />
+            ) : (
+              <select
+                id="deadline-date-select"
+                value={
+                  isIsoDateWeekend(selectionDeadlineDate)
+                    ? ''
+                    : selectionDeadlineDate
+                }
+                onChange={(event) => onDeadlineDateChange(event.target.value)}
+                className="h-7 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring md:h-8"
+              >
+                <option value="" disabled>
+                  Выбери рабочий день
                 </option>
-              ))}
-            </select>
+                {deadlineDateOptions.map((dateValue) => (
+                  <option key={dateValue} value={dateValue}>
+                    {formatIsoDateDdMmYyyy(dateValue)}
+                  </option>
+                ))}
+              </select>
+            )}
             <select
               id="deadline-hour-select"
               value={selectionDeadlineHour}
               onChange={(event) => {
                 const nextValue = `${selectionDeadlineDate}T${event.target.value}:00`
-                if (nextValue < minSelectionDeadlineLocal) {
+                if (enforceFutureDeadline && nextValue < minSelectionDeadlineLocal) {
                   setResult({
                     ok: false,
                     message: 'Дедлайн выбора не может быть в прошлом.'
@@ -569,6 +715,7 @@ export function CanteenMenuForm({
                 setResult(null)
                 setSelectionDeadlineLocal(nextValue)
               }}
+              disabled={isDeadlineHourLocked || availableDeadlineHours.length === 0}
               className="h-7 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring md:h-8"
             >
               {availableDeadlineHours.map((hour) => (
@@ -578,6 +725,15 @@ export function CanteenMenuForm({
               ))}
             </select>
           </div>
+          <p className="text-[11px] text-slate-500">
+            {menuDatePreset === 'past'
+              ? 'Для прошедшей даты дедлайн фиксирован.'
+              : menuDatePreset === 'today'
+                ? 'Для меню на сегодня дедлайн выбирается только в пределах текущего дня.'
+                : menuDatePreset === 'tomorrow'
+                  ? 'Для меню на завтра дедлайн выбирается на сегодня.'
+                  : 'Для дальних дат можно выбрать рабочую дату дедлайна.'}
+          </p>
         </div>
       </div>
 

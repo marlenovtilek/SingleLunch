@@ -96,6 +96,7 @@ export default async function CanteenMenuEditPage({ searchParams }: PageProps) {
           <CanteenMenuForm
             mode="edit"
             selectedDate={selectedDate}
+            quickDateOptions={[selectedDate]}
             currentMenu={currentMenu}
             creationLocked={false}
             lockReason={null}

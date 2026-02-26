@@ -55,15 +55,36 @@ class CanteenMenuUpsertSerializer(serializers.Serializer):
         return value
 
     def validate_selection_deadline(self, value):
-        if value <= timezone.now():
-            raise serializers.ValidationError(
-                "Дедлайн выбора не может быть в прошлом."
-            )
         if timezone.localtime(value).weekday() in (5, 6):
             raise serializers.ValidationError(
                 "Дедлайн выбора не может приходиться на выходной (суббота/воскресенье)."
             )
         return value
+
+    def validate(self, attrs):
+        menu_date = attrs.get("date")
+        selection_deadline = attrs.get("selection_deadline")
+        if not menu_date or not selection_deadline:
+            return attrs
+
+        today = timezone.localdate()
+        deadline_date = timezone.localtime(selection_deadline).date()
+
+        if deadline_date > menu_date:
+            raise serializers.ValidationError(
+                {
+                    "selection_deadline": (
+                        "Дедлайн выбора не может быть позже даты меню."
+                    )
+                }
+            )
+
+        if menu_date >= today and selection_deadline <= timezone.now():
+            raise serializers.ValidationError(
+                {"selection_deadline": "Дедлайн выбора не может быть в прошлом."}
+            )
+
+        return attrs
 
 
 class CanteenMenuSummarySerializer(serializers.ModelSerializer):

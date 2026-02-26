@@ -2,7 +2,6 @@ import { PaymentScreenshotModal } from '@/components/payment-screenshot-modal'
 import { canManageCanteen, getCurrentUserOrRedirect } from '@/lib/account'
 import {
   addDaysToIsoDate,
-  buildBusinessDateOptions,
   formatIsoDateDdMmYyyy,
   getTodayDateStringBishkek
 } from '@/lib/bishkek-date'
@@ -12,9 +11,10 @@ import {
   buildServerApiHeaders,
   getServerApiBaseUrl
 } from '@/lib/server-api'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-type PageProps = { searchParams: Promise<{ date?: string }> }
+type PageProps = { searchParams: Promise<{ date?: string | string[] }> }
 
 type CanteenOrderItem = {
   menu_option_name: string
@@ -52,14 +52,16 @@ type CanteenOrdersDashboard = {
 
 export default async function CanteenOrdersPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const selectedDate = params.date ?? getTodayDateStringBishkek()
-  const dateOptionsBase = buildBusinessDateOptions(
-    addDaysToIsoDate(selectedDate, -60),
-    180
-  )
-  const dateOptions = dateOptionsBase.includes(selectedDate)
-    ? dateOptionsBase
-    : [selectedDate, ...dateOptionsBase]
+  const todayDate = getTodayDateStringBishkek()
+  const yesterdayDate = addDaysToIsoDate(todayDate, -1)
+  const tomorrowDate = addDaysToIsoDate(todayDate, 1)
+  const dateParam = params.date
+  const selectedDateCandidate = Array.isArray(dateParam)
+    ? (dateParam.at(-1) ?? '')
+    : (dateParam ?? '')
+  const selectedDate = /^\d{4}-\d{2}-\d{2}$/.test(selectedDateCandidate)
+    ? selectedDateCandidate
+    : todayDate
   const { session, user: me } = await getCurrentUserOrRedirect()
 
   if (!canManageCanteen(me)) {
@@ -115,37 +117,40 @@ export default async function CanteenOrdersPage({ searchParams }: PageProps) {
         </p>
       </header>
 
-      <form
-        method="get"
-        className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
-      >
-        <div className="space-y-1">
-          <label
-            htmlFor="canteen-orders-date"
-            className="block text-xs font-medium text-slate-700"
+      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap gap-1.5">
+          <Link
+            href={`?date=${yesterdayDate}`}
+            className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+              selectedDate === yesterdayDate
+                ? 'border-slate-900 bg-slate-900 text-white'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+            }`}
           >
-            Дата
-          </label>
-          <select
-            id="canteen-orders-date"
-            name="date"
-            defaultValue={selectedDate}
-            className="block w-full max-w-xs rounded-md border border-slate-300 px-2.5 py-1.5 text-xs outline-none ring-slate-900/10 focus:ring"
+            Вчера ({formatIsoDateDdMmYyyy(yesterdayDate)})
+          </Link>
+          <Link
+            href={`?date=${todayDate}`}
+            className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+              selectedDate === todayDate
+                ? 'border-slate-900 bg-slate-900 text-white'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+            }`}
           >
-            {dateOptions.map((dateValue) => (
-              <option key={dateValue} value={dateValue}>
-                {formatIsoDateDdMmYyyy(dateValue)}
-              </option>
-            ))}
-          </select>
+            Сегодня ({formatIsoDateDdMmYyyy(todayDate)})
+          </Link>
+          <Link
+            href={`?date=${tomorrowDate}`}
+            className={`rounded-md border px-2.5 py-1 text-xs font-medium transition ${
+              selectedDate === tomorrowDate
+                ? 'border-slate-900 bg-slate-900 text-white'
+                : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+            }`}
+          >
+            Завтра ({formatIsoDateDdMmYyyy(tomorrowDate)})
+          </Link>
         </div>
-        <button
-          type="submit"
-          className="mt-2 rounded-md bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-700"
-        >
-          Показать
-        </button>
-      </form>
+      </div>
 
       {errorMessage && (
         <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-xs text-rose-900">

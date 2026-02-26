@@ -28,11 +28,17 @@ def make_user(
 
 
 def build_menu_payload(menu_date, deadline_shift_hours: int):
+    today = timezone.localdate()
+    if menu_date < today:
+        deadline = timezone.make_aware(datetime.combine(menu_date, time(hour=12)))
+    elif menu_date == today:
+        deadline = timezone.now() + timedelta(hours=max(deadline_shift_hours, 1))
+    else:
+        deadline = timezone.make_aware(datetime.combine(menu_date, time(hour=12)))
+
     return {
         "date": menu_date.isoformat(),
-        "selection_deadline": (
-            timezone.now() + timedelta(hours=deadline_shift_hours)
-        ).isoformat(),
+        "selection_deadline": deadline.isoformat(),
         "options": [
             {"name": "Плов"},
             {"name": "Салат"},
@@ -214,12 +220,12 @@ def test_employee_cannot_access_canteen_menu_list():
 
 
 @pytest.mark.django_db
-def test_cannot_create_or_edit_menu_for_past_date():
+def test_cannot_create_or_edit_menu_for_old_past_date():
     canteen = make_user("canteen_menu_past", "CANTEEN")
     client = APIClient()
     client.force_authenticate(user=canteen)
 
-    past_date = timezone.localdate() - timedelta(days=1)
+    past_date = timezone.localdate() - timedelta(days=2)
     response = client.put(
         reverse("canteen-menu"),
         build_menu_payload(past_date, 2),
@@ -241,6 +247,28 @@ def test_cannot_create_or_edit_menu_for_past_date():
     )
     assert response.status_code == 400
     assert "date" in response.json()
+
+
+@pytest.mark.django_db
+def test_can_create_and_edit_menu_for_yesterday():
+    canteen = make_user("canteen_menu_yesterday", "CANTEEN")
+    client = APIClient()
+    client.force_authenticate(user=canteen)
+
+    yesterday = timezone.localdate() - timedelta(days=1)
+    create_response = client.put(
+        reverse("canteen-menu"),
+        build_menu_payload(yesterday, 2),
+        format="json",
+    )
+    assert create_response.status_code == 201
+
+    edit_response = client.put(
+        reverse("canteen-menu-edit"),
+        build_menu_payload(yesterday, 3),
+        format="json",
+    )
+    assert edit_response.status_code == 200
 
 
 @pytest.mark.django_db
@@ -296,6 +324,30 @@ def test_cannot_create_menu_with_past_selection_deadline():
     menu_date = timezone.localdate() + timedelta(days=1)
     payload = build_menu_payload(menu_date, 4)
     payload["selection_deadline"] = (timezone.now() - timedelta(minutes=5)).isoformat()
+
+    response = client.put(
+        reverse("canteen-menu"),
+        payload,
+        format="json",
+    )
+
+    assert response.status_code == 400
+    assert "selection_deadline" in response.json()
+
+
+@pytest.mark.django_db
+def test_cannot_create_menu_with_deadline_after_menu_date():
+    canteen = make_user("canteen_menu_deadline_after_date", "CANTEEN")
+    client = APIClient()
+    client.force_authenticate(user=canteen)
+
+    menu_date = timezone.localdate() + timedelta(days=1)
+    payload = build_menu_payload(menu_date, 4)
+    payload["selection_deadline"] = (
+        timezone.make_aware(
+            datetime.combine(menu_date + timedelta(days=1), time(hour=10))
+        )
+    ).isoformat()
 
     response = client.put(
         reverse("canteen-menu"),
