@@ -5,6 +5,8 @@ set -euo pipefail
 : "${REMINDER_CRON:=0 16 * * *}"
 : "${MISSED_DEADLINE_CRON:=*/10 * * * *}"
 : "${DUTY_REMINDER_CRON:=0 9 * * *}"
+: "${PAYMENT_SCREENSHOT_CLEANUP_CRON:=30 3 * * *}"
+: "${PAYMENT_SCREENSHOT_RETENTION_DAYS:=7}"
 
 CRON_FILE="/tmp/singlelunch.cron"
 ENV_FILE="/tmp/singlelunch.env"
@@ -27,6 +29,7 @@ export FRONTEND_BASE_URL='${FRONTEND_BASE_URL:-}'
 export NEXT_PUBLIC_APP_URL='${NEXT_PUBLIC_APP_URL:-}'
 export MENU_NEXT_DAY_SWITCH_HOUR='${MENU_NEXT_DAY_SWITCH_HOUR:-15}'
 export MENU_NEXT_DAY_SWITCH_MINUTE='${MENU_NEXT_DAY_SWITCH_MINUTE:-0}'
+export PAYMENT_SCREENSHOT_RETENTION_DAYS='${PAYMENT_SCREENSHOT_RETENTION_DAYS:-7}'
 EOF
 
 cat > "${CRON_FILE}" <<EOF
@@ -36,6 +39,7 @@ CRON_TZ=${CRON_TIMEZONE}
 ${MISSED_DEADLINE_CRON} source ${ENV_FILE} && cd /app && /.venv/bin/python manage.py mark_missed_deadline_orders >> /proc/1/fd/1 2>> /proc/1/fd/2
 ${REMINDER_CRON} source ${ENV_FILE} && cd /app && /.venv/bin/python manage.py send_order_reminders >> /proc/1/fd/1 2>> /proc/1/fd/2
 ${DUTY_REMINDER_CRON} source ${ENV_FILE} && cd /app && /.venv/bin/python manage.py send_duty_reminders >> /proc/1/fd/1 2>> /proc/1/fd/2
+${PAYMENT_SCREENSHOT_CLEANUP_CRON} source ${ENV_FILE} && cd /app && /.venv/bin/python manage.py cleanup_payment_screenshots --days "${PAYMENT_SCREENSHOT_RETENTION_DAYS}" >> /proc/1/fd/1 2>> /proc/1/fd/2
 EOF
 
 crontab "${CRON_FILE}"

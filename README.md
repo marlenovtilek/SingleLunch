@@ -64,12 +64,15 @@ Scheduler service runs:
 - `mark_missed_deadline_orders`
 - `send_order_reminders`
 - `send_duty_reminders`
+- `cleanup_payment_screenshots --days $PAYMENT_SCREENSHOT_RETENTION_DAYS`
 
 Cron/env settings are in `.env.backend`:
 - `CRON_TIMEZONE`
 - `REMINDER_CRON`
 - `MISSED_DEADLINE_CRON`
 - `DUTY_REMINDER_CRON`
+- `PAYMENT_SCREENSHOT_CLEANUP_CRON`
+- `PAYMENT_SCREENSHOT_RETENTION_DAYS`
 - `MENU_NEXT_DAY_SWITCH_HOUR`
 - `MENU_NEXT_DAY_SWITCH_MINUTE`
 
@@ -79,6 +82,8 @@ Manual reminder run:
 docker compose exec api /.venv/bin/python manage.py send_order_reminders --dry-run
 docker compose exec api /.venv/bin/python manage.py send_order_reminders --menu-date 2026-02-24
 docker compose exec api /.venv/bin/python manage.py send_order_reminders --menu-date 2026-02-24 --force-resend
+docker compose exec api /.venv/bin/python manage.py cleanup_payment_screenshots --days 7 --dry-run
+docker compose exec api /.venv/bin/python manage.py cleanup_payment_screenshots --days 7
 ```
 
 ## Notifications setup
