@@ -54,24 +54,26 @@ export function ProfileForm({
     })
 
   return (
-    <section className="mx-auto w-full max-w-4xl space-y-4">
-      <header className="rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-4 sm:p-5">
-        <h1 className="text-xl font-semibold text-slate-900">Личный кабинет</h1>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <div className="rounded-lg border border-slate-200 bg-white/90 p-2.5">
+    <section className="mx-auto w-full max-w-4xl space-y-2 sm:space-y-3">
+      <header className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-3 sm:rounded-2xl sm:p-5">
+        <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">
+          Личный кабинет
+        </h1>
+        <div className="mt-2 grid grid-cols-2 gap-1.5 sm:mt-3 sm:gap-2">
+          <div className="rounded-lg border border-slate-200 bg-white/90 p-2">
             <p className="text-[11px] uppercase tracking-wide text-slate-500">
               Роль
             </p>
-            <p className="mt-0.5 text-sm font-semibold text-slate-900">
+            <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:text-sm">
               {roleLabel(currentUser.role)}
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white/90 p-2.5">
+          <div className="rounded-lg border border-slate-200 bg-white/90 p-2">
             <p className="text-[11px] uppercase tracking-wide text-slate-500">
               Права
             </p>
-            <p className="mt-0.5 text-sm font-semibold text-slate-900">
-              Staff: {currentUser.is_staff ? 'Да' : 'Нет'} · Superuser:{' '}
+            <p className="mt-0.5 text-xs font-semibold text-slate-900 sm:text-sm">
+              Staff: {currentUser.is_staff ? 'Да' : 'Нет'} · Super:{' '}
               {currentUser.is_superuser ? 'Да' : 'Нет'}
             </p>
           </div>
@@ -80,7 +82,7 @@ export function ProfileForm({
 
       <form
         method="post"
-        className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+        className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5"
         onSubmit={handleSubmit(async (data) => {
           const res = await onSubmitHandler(data)
 
@@ -103,8 +105,8 @@ export function ProfileForm({
       >
         {success && <SuccessMessage>Профиль успешно обновлен</SuccessMessage>}
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+        <div className="grid gap-2 min-[390px]:grid-cols-2 sm:gap-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Основные данные
             </p>
@@ -114,6 +116,7 @@ export function ProfileForm({
               label="Имя"
               formState={formState}
               disabled={!isEditing}
+              compact
             />
 
             <TextField
@@ -122,6 +125,7 @@ export function ProfileForm({
               label="Фамилия"
               formState={formState}
               disabled={!isEditing}
+              compact
             />
 
             <TextField
@@ -130,14 +134,15 @@ export function ProfileForm({
               label="Дата рождения"
               formState={formState}
               disabled={!isEditing}
+              compact
             />
 
-            <label className="mb-3 flex flex-col">
-              <span className="mb-1.5 block text-xs font-medium leading-none text-slate-700">
+            <label className="mb-2 flex flex-col">
+              <span className="mb-1 block text-[11px] font-medium leading-none text-slate-700 sm:text-xs">
                 Департамент
               </span>
               <select
-                className="block h-9 max-w-lg rounded-md bg-white px-3 text-sm font-medium shadow-sm outline outline-1 outline-gray-900/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500"
+                className="block h-8 max-w-lg rounded-md bg-white px-2.5 text-xs font-medium shadow-sm outline outline-1 outline-gray-900/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:h-9 sm:px-3 sm:text-sm"
                 {...register('department')}
                 disabled={!isEditing}
                 defaultValue={currentUser.department || ''}
@@ -157,7 +162,7 @@ export function ProfileForm({
             </label>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Контакты и уведомления
             </p>
@@ -167,6 +172,7 @@ export function ProfileForm({
               label="Номер телефона"
               formState={formState}
               disabled={!isEditing}
+              compact
             />
 
             <TextField
@@ -175,8 +181,9 @@ export function ProfileForm({
               label="Telegram ID"
               formState={formState}
               disabled={!isEditing}
+              compact
             />
-            <p className="-mt-2 mb-3 text-[11px] text-slate-500">
+            <p className="-mt-1 mb-2 text-[10px] text-slate-500 sm:mb-3 sm:text-[11px]">
               Для уведомлений подпишись на бота:{' '}
               <a
                 href={telegramBotUrl}
@@ -194,6 +201,7 @@ export function ProfileForm({
               label="Mattermost ID"
               formState={formState}
               disabled={!isEditing}
+              compact
             />
           </div>
         </div>
@@ -205,13 +213,13 @@ export function ProfileForm({
               setSuccess(false)
               setIsEditing(true)
             }}
-            className="mt-4 block h-10 w-full rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700"
+            className="mt-3 block h-9 w-full rounded-lg bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700 sm:mt-4 sm:h-10"
           >
             Редактировать профиль
           </button>
         ) : (
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <SubmitField isLoading={formState.isSubmitting}>
+          <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row">
+            <SubmitField isLoading={formState.isSubmitting} compact>
               Сохранить
             </SubmitField>
             <button
@@ -221,7 +229,7 @@ export function ProfileForm({
                 setSuccess(false)
                 setIsEditing(false)
               }}
-              className="block h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              className="block h-9 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:h-10"
             >
               Отмена
             </button>
