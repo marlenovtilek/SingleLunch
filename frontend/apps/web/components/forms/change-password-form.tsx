@@ -26,15 +26,15 @@ export function ChangePaswordForm({
     })
 
   return (
-    <section className="mx-auto w-full max-w-2xl space-y-2 sm:space-y-3">
-      <header className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-3 sm:rounded-2xl sm:p-5">
+    <section className="mx-auto w-full max-w-3xl space-y-2.5 sm:space-y-3">
+      <header className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-3 sm:rounded-2xl sm:p-4">
         <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">
           Безопасность
         </h1>
         <p className="mt-1 text-xs text-slate-600 sm:text-sm">
           Обнови пароль для входа в аккаунт.
         </p>
-        <ul className="mt-2 hidden space-y-1 text-xs text-slate-600 sm:mt-3 sm:block">
+        <ul className="mt-2 hidden space-y-1 text-xs text-slate-600 md:block">
           <li>• Используй минимум 8 символов.</li>
           <li>• Добавь цифры и буквы разного регистра.</li>
           <li>• Не используй старый пароль повторно.</li>
@@ -45,7 +45,7 @@ export function ChangePaswordForm({
 
       <form
         method="post"
-        className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5"
+        className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-4"
         onSubmit={handleSubmit(async (data) => {
           const res = await onSubmitHandler(data)
 
@@ -68,6 +68,7 @@ export function ChangePaswordForm({
             formState={formState}
             allowPasswordToggle
             compact
+            inline
           />
 
           <TextField
@@ -77,6 +78,7 @@ export function ChangePaswordForm({
             formState={formState}
             allowPasswordToggle
             compact
+            inline
           />
 
           <TextField
@@ -86,6 +88,7 @@ export function ChangePaswordForm({
             formState={formState}
             allowPasswordToggle
             compact
+            inline
           />
         </div>
 

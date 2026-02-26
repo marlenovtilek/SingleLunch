@@ -41,20 +41,26 @@ export function TextField({
       className={twMerge(
         'mb-3 flex flex-col last:mb-0',
         compact && 'mb-2',
-        inline && 'mb-2 flex-row flex-wrap items-center gap-2'
+        inline &&
+          'mb-2 grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-1'
       )}
     >
       <span
         className={twMerge(
           'mb-1.5 block text-xs font-medium leading-none text-slate-700',
           compact && 'mb-1 text-[11px]',
-          inline && 'mb-0 w-24 shrink-0'
+          inline && 'mb-0 w-auto text-[11px] sm:text-xs'
         )}
       >
         {label}
       </span>
 
-      <div className={twMerge('relative max-w-lg', inline && 'max-w-none flex-1')}>
+      <div
+        className={twMerge(
+          'relative max-w-lg',
+          inline && 'max-w-none min-w-0 flex-1'
+        )}
+      >
         <input
           type={currentType}
           placeholder={placeholder}
@@ -94,7 +100,7 @@ export function TextField({
           className={twMerge(
             'mt-1 text-xs text-red-600',
             compact && 'mt-0.5 text-[11px]',
-            inline && 'mt-0 ml-[6.5rem] w-full'
+            inline && 'col-start-2 mt-0.5 w-full'
           )}
         >
           {formState.errors[register.name]?.message?.toString()}

@@ -244,7 +244,7 @@ export function AccountShell({
           </div>
         </aside>
 
-        <main className="min-w-0 min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3.5">
+        <main className="min-w-0 min-h-0 overflow-x-hidden overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3.5">
           {children}
         </main>
       </div>

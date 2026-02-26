@@ -47,8 +47,8 @@ export function ProfileForm({
     })
 
   return (
-    <section className="mx-auto w-full max-w-4xl space-y-2 sm:space-y-3">
-      <header className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-3 sm:rounded-2xl sm:p-5">
+    <section className="mx-auto w-full max-w-4xl space-y-2.5 sm:space-y-3">
+      <header className="rounded-xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-teal-50 p-3 sm:rounded-2xl sm:p-4">
         <h1 className="text-lg font-semibold text-slate-900 sm:text-xl">
           Личный кабинет
         </h1>
@@ -56,7 +56,7 @@ export function ProfileForm({
 
       <form
         method="post"
-        className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-5"
+        className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-4"
         onSubmit={handleSubmit(async (data) => {
           const res = await onSubmitHandler(data)
 
@@ -79,8 +79,8 @@ export function ProfileForm({
       >
         {success && <SuccessMessage>Профиль успешно обновлен</SuccessMessage>}
 
-        <div className="grid gap-2 lg:grid-cols-2 sm:gap-3">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
+        <div className="grid gap-2.5 sm:gap-3 lg:grid-cols-2">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Основные данные
             </p>
@@ -114,12 +114,12 @@ export function ProfileForm({
               inline
             />
 
-            <label className="mb-2 flex flex-row flex-wrap items-center gap-2">
-              <span className="w-24 shrink-0 text-[11px] font-medium leading-none text-slate-700 sm:text-xs">
+            <label className="mb-2 grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-1">
+              <span className="text-[11px] font-medium leading-none text-slate-700 sm:text-xs">
                 Департамент
               </span>
               <select
-                className="block h-8 max-w-none flex-1 rounded-md bg-white px-2.5 text-xs font-medium shadow-sm outline outline-1 outline-gray-900/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:h-9 sm:px-3 sm:text-sm"
+                className="block h-8 w-full min-w-0 rounded-md bg-white px-2.5 text-xs font-medium shadow-sm outline outline-1 outline-gray-900/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 sm:h-9 sm:px-3 sm:text-sm"
                 {...register('department')}
                 disabled={!isEditing}
                 defaultValue={currentUser.department || ''}
@@ -132,14 +132,14 @@ export function ProfileForm({
                 ))}
               </select>
               {formState.errors.department && (
-                <div className="mt-0 w-full text-xs text-red-600 [margin-left:6.5rem]">
+                <div className="col-start-2 w-full text-[11px] text-red-600 sm:text-xs">
                   {formState.errors.department.message?.toString()}
                 </div>
               )}
             </label>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
+          <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2.5 sm:p-3">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
               Контакты и уведомления
             </p>
@@ -162,17 +162,19 @@ export function ProfileForm({
               compact
               inline
             />
-            <p className="-mt-1 mb-2 text-[10px] text-slate-500 sm:mb-3 sm:text-[11px] [margin-left:6.5rem]">
-              Для уведомлений подпишись на бота:{' '}
-              <a
-                href={telegramBotUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-sky-700 underline decoration-sky-300 underline-offset-2 hover:text-sky-800"
-              >
-                Открыть Telegram-бота
-              </a>
-            </p>
+            <div className="-mt-1 mb-2 grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-2 sm:mb-3">
+              <p className="col-start-2 text-[10px] text-slate-500 sm:text-[11px]">
+                Для уведомлений подпишись на бота:{' '}
+                <a
+                  href={telegramBotUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-sky-700 underline decoration-sky-300 underline-offset-2 hover:text-sky-800"
+                >
+                  Открыть Telegram-бота
+                </a>
+              </p>
+            </div>
 
             <TextField
               type="text"
@@ -198,7 +200,7 @@ export function ProfileForm({
             Редактировать профиль
           </button>
         ) : (
-          <div className="mt-3 flex flex-col gap-2 sm:mt-4 sm:flex-row">
+          <div className="mt-3 grid gap-2 sm:mt-4 sm:grid-cols-2">
             <SubmitField isLoading={formState.isSubmitting} compact>
               Сохранить
             </SubmitField>
