@@ -136,13 +136,13 @@ class DutyAssignmentUpsertSerializer(serializers.Serializer):
         if not assignee:
             raise serializers.ValidationError({"assignee_id": "Пользователь не найден или неактивен."})
 
-        if not (
-            assignee.is_staff
+        if (
+            getattr(assignee, "role", None) != "EMPLOYEE"
+            or assignee.is_staff
             or assignee.is_superuser
-            or getattr(assignee, "role", None) == "CANTEEN"
         ):
             raise serializers.ValidationError(
-                {"assignee_id": "Назначить можно только представителя столовой."}
+                {"assignee_id": "Назначить можно только сотрудника (не админа и не столовую)."}
             )
 
         attrs["assignee"] = assignee

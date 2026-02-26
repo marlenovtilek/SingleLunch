@@ -115,3 +115,37 @@ def test_canteen_still_sees_today_menu_after_switch_hour(monkeypatch, settings):
     response = client.get(reverse("menu-today"))
     assert response.status_code == 200
     assert response.data["date"] == today.isoformat()
+
+
+@pytest.mark.django_db
+def test_employee_after_switch_hour_skips_weekend_to_next_business_day(
+    monkeypatch, settings
+):
+    settings.MENU_NEXT_DAY_SWITCH_HOUR = 12
+    settings.MENU_NEXT_DAY_SWITCH_MINUTE = 0
+
+    # Friday in business timezone.
+    friday = timezone.localdate()
+    while friday.weekday() != 4:
+        friday += timedelta(days=1)
+    monday = friday + timedelta(days=3)
+
+    create_menu(friday, "Пятничное меню")
+    create_menu(monday, "Понедельничное меню")
+
+    employee = make_user("employee_menu_weekend_shift", "EMPLOYEE")
+    client = APIClient()
+    client.force_authenticate(user=employee)
+
+    monkeypatch.setattr(
+        "app_catering.api.v1.views.timezone.localdate",
+        lambda *_args, **_kwargs: friday,
+    )
+    monkeypatch.setattr(
+        "app_catering.api.v1.views.timezone.localtime",
+        lambda *_args, **_kwargs: bishkek_datetime(friday, 12, 30),
+    )
+
+    response = client.get(reverse("menu-today"))
+    assert response.status_code == 200
+    assert response.data["date"] == monday.isoformat()

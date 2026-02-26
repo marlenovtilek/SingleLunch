@@ -84,6 +84,8 @@ Cron/env settings are in `.env.backend`:
 - `MENU_NEXT_DAY_SWITCH_HOUR`
 - `MENU_NEXT_DAY_SWITCH_MINUTE`
 
+`MENU_NEXT_DAY_SWITCH_HOUR/MINUTE` define when employees switch from today's menu to the next business-day menu (default: `12:00` Asia/Bishkek).
+
 Manual reminder run:
 
 ```bash

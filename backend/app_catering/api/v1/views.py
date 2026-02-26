@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command
 
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
@@ -36,6 +36,13 @@ from app_users.models import BrandingSettings
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
+
+
+def _next_business_day(source_date: date) -> date:
+    candidate = source_date + timedelta(days=1)
+    while candidate.weekday() in (5, 6):
+        candidate += timedelta(days=1)
+    return candidate
 
 
 def _schedule_immediate_order_reminder(menu: DailyMenu) -> None:
@@ -141,7 +148,7 @@ class TodayMenuAPIView(views.APIView):
             microsecond=0,
         )
         if now_local >= switch_at:
-            return today + timedelta(days=1)
+            return _next_business_day(today)
         return today
 
     @extend_schema(responses={200: TodayMenuSerializer})
@@ -401,11 +408,17 @@ class DutyAssigneesAPIView(views.APIView):
     @extend_schema(responses={200: DutyAssigneeSerializer(many=True)})
     def get(self, request, *args, **kwargs):
         users = (
-            User.objects.filter(is_active=True)
-            .filter(Q(role="CANTEEN") | Q(is_staff=True) | Q(is_superuser=True))
+            User.objects.filter(
+                is_active=True,
+                role="EMPLOYEE",
+                is_staff=False,
+                is_superuser=False,
+            )
             .order_by("first_name", "last_name", "username")
         )
-        return Response(DutyAssigneeSerializer(users, many=True).data, status=status.HTTP_200_OK)
+        return Response(
+            DutyAssigneeSerializer(users, many=True).data, status=status.HTTP_200_OK
+        )
 
 
 class DutyAssignmentUpsertAPIView(views.APIView):

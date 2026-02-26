@@ -105,12 +105,15 @@ export default async function DutyPage({ searchParams }: PageProps) {
     calendar.assignments.map((assignment) => [assignment.date, assignment])
   )
   const monthDays = buildBusinessMonthDays(selectedMonth)
+  const assigneesUnique = Array.from(
+    new Map(assignees.map((assignee) => [assignee.id, assignee])).values()
+  )
 
   return (
-    <section className="space-y-2.5">
-      <header className="space-y-0.5">
+    <section className="space-y-2">
+      <header className="space-y-0.5 rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
         <h1 className="text-lg font-semibold text-slate-900">Дежурство</h1>
-        <p className="text-xs text-slate-600">
+        <p className="text-[11px] text-slate-600 sm:text-xs">
           Календарь дежурств и распределение по дням.
         </p>
       </header>
@@ -129,7 +132,7 @@ export default async function DutyPage({ searchParams }: PageProps) {
 
       <form
         method="get"
-        className="flex flex-wrap items-end gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
+        className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-1.5 rounded-lg border border-slate-200 bg-white p-2 shadow-sm"
       >
         <label className="space-y-1 text-xs font-medium text-slate-700">
           Месяц
@@ -137,12 +140,12 @@ export default async function DutyPage({ searchParams }: PageProps) {
             type="month"
             name="month"
             defaultValue={selectedMonth}
-            className="h-7 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring"
+            className="h-8 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring"
           />
         </label>
         <button
           type="submit"
-          className="h-7 rounded-md bg-slate-900 px-2 text-xs font-medium text-white hover:bg-slate-700"
+          className="h-8 rounded-md bg-slate-900 px-2.5 text-xs font-medium text-white hover:bg-slate-700"
         >
           Показать
         </button>
@@ -156,21 +159,32 @@ export default async function DutyPage({ searchParams }: PageProps) {
           <input type="hidden" name="month" value={selectedMonth} />
           <label className="space-y-1 text-xs font-medium text-slate-700">
             Дата
-            <input
-              type="date"
+            <select
               name="date"
               required
-              className="h-7 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring"
-            />
+              defaultValue={monthDays[0] ?? ''}
+              className="h-8 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring disabled:cursor-not-allowed disabled:bg-slate-100"
+              disabled={monthDays.length === 0}
+            >
+              {monthDays.length === 0 ? (
+                <option value="">Нет рабочих дней</option>
+              ) : (
+                monthDays.map((dateValue) => (
+                  <option key={dateValue} value={dateValue}>
+                    {formatIsoDateDdMmYyyy(dateValue)} ({getIsoWeekdayShortLabel(dateValue)})
+                  </option>
+                ))
+              )}
+            </select>
           </label>
           <label className="space-y-1 text-xs font-medium text-slate-700">
             Кто дежурит
             <select
               name="assignee_id"
-              className="h-7 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring"
+              className="h-8 w-full rounded-md border border-slate-300 px-2 text-xs outline-none ring-slate-900/10 focus:ring"
             >
               <option value="">Снять дежурного</option>
-              {assignees.map((assignee) => (
+              {assigneesUnique.map((assignee) => (
                 <option key={assignee.id} value={assignee.id}>
                   {assignee.full_name} (@{assignee.username})
                 </option>
@@ -179,10 +193,13 @@ export default async function DutyPage({ searchParams }: PageProps) {
           </label>
           <button
             type="submit"
-            className="h-7 rounded-md bg-emerald-700 px-2 text-xs font-medium text-white hover:bg-emerald-600 md:self-end"
+            className="h-8 rounded-md bg-emerald-700 px-2.5 text-xs font-medium text-white hover:bg-emerald-600 md:self-end"
           >
             Сохранить
           </button>
+          <p className="text-[11px] text-slate-500 md:col-span-3">
+            Для назначения доступны только рабочие дни выбранного месяца.
+          </p>
         </form>
       )}
 
@@ -196,9 +213,9 @@ export default async function DutyPage({ searchParams }: PageProps) {
             return (
               <li
                 key={dateValue}
-                className="grid grid-cols-[1fr_auto] items-center gap-2 px-2.5 py-2"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-2.5 py-2"
               >
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-semibold text-slate-900">
                     {formatIsoDateDdMmYyyy(dateValue)}
                   </p>
@@ -209,7 +226,7 @@ export default async function DutyPage({ searchParams }: PageProps) {
                       : 'Не назначено'}
                   </p>
                 </div>
-                <p className="truncate text-right text-xs text-slate-700">
+                <p className="max-w-[10rem] truncate text-right text-xs text-slate-700">
                   {assignment ? assignment.assignee_full_name : 'Свободно'}
                 </p>
               </li>

@@ -2,6 +2,11 @@
 
 import { authOptions, isSessionAuthorized } from '@/lib/auth'
 import {
+  buildBusinessMonthDays,
+  getCurrentMonthBishkek,
+  normalizeIsoMonth
+} from '@/lib/bishkek-date'
+import {
   API_URL_NOT_CONFIGURED_MESSAGE,
   buildServerApiHeaders,
   getServerApiBaseUrl,
@@ -35,11 +40,23 @@ export async function upsertDutyAssignmentAction(formData: FormData) {
   }
 
   const month = String(formData.get('month') ?? '')
+  const safeMonth = normalizeIsoMonth(month, getCurrentMonthBishkek())
   const dutyDate = String(formData.get('date') ?? '').trim()
   const assigneeId = String(formData.get('assignee_id') ?? '').trim()
+  const allowedDates = new Set(buildBusinessMonthDays(safeMonth))
 
   if (!dutyDate) {
-    redirect(buildDutyUrl(month, 'error', 'Выбери дату дежурства.'))
+    redirect(buildDutyUrl(safeMonth, 'error', 'Выбери дату дежурства.'))
+  }
+
+  if (!allowedDates.has(dutyDate)) {
+    redirect(
+      buildDutyUrl(
+        safeMonth,
+        'error',
+        'Можно выбрать только рабочий день из выбранного месяца.'
+      )
+    )
   }
 
   const response = await fetch(`${apiBaseUrl}/api/v1/duty/assign/`, {
@@ -65,8 +82,8 @@ export async function upsertDutyAssignmentAction(formData: FormData) {
     } catch {
       // ignore parse errors
     }
-    redirect(buildDutyUrl(month, 'error', message))
+    redirect(buildDutyUrl(safeMonth, 'error', message))
   }
 
-  redirect(buildDutyUrl(month, 'success', '1'))
+  redirect(buildDutyUrl(safeMonth, 'success', '1'))
 }

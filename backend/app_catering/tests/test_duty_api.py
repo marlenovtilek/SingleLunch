@@ -46,7 +46,7 @@ def test_duty_calendar_returns_month_assignments_for_authenticated_user():
 
 @pytest.mark.django_db
 def test_duty_assign_forbidden_for_employee():
-    assignee = make_user("canteen_assignee_2", "CANTEEN")
+    assignee = make_user("employee_assignee_2", "EMPLOYEE")
     employee = make_user("employee_assign_forbidden", "EMPLOYEE")
 
     client = APIClient()
@@ -63,7 +63,7 @@ def test_duty_assign_forbidden_for_employee():
 @pytest.mark.django_db
 def test_canteen_can_assign_and_clear_duty():
     canteen_manager = make_user("canteen_manager_1", "CANTEEN")
-    assignee = make_user("canteen_assignee_3", "CANTEEN")
+    assignee = make_user("employee_assignee_3", "EMPLOYEE")
     duty_date = timezone.localdate() + timedelta(days=1)
 
     client = APIClient()
@@ -87,11 +87,12 @@ def test_canteen_can_assign_and_clear_duty():
 
 
 @pytest.mark.django_db
-def test_duty_assignees_list_returns_only_canteen_or_admin():
+def test_duty_assignees_list_returns_only_employee_non_admin_users():
     canteen_manager = make_user("canteen_manager_2", "CANTEEN")
-    canteen_user = make_user("canteen_user_1", "CANTEEN")
-    make_user("employee_not_assignee", "EMPLOYEE")
+    make_user("canteen_user_1", "CANTEEN")
+    make_user("employee_assignee", "EMPLOYEE")
     make_user("staff_assignee", "EMPLOYEE", is_staff=True)
+    make_user("super_assignee", "EMPLOYEE", is_superuser=True)
 
     client = APIClient()
     client.force_authenticate(user=canteen_manager)
@@ -100,6 +101,8 @@ def test_duty_assignees_list_returns_only_canteen_or_admin():
     assert response.status_code == 200
 
     usernames = {item["username"] for item in response.json()}
-    assert "canteen_user_1" in usernames
-    assert "staff_assignee" in usernames
-    assert "employee_not_assignee" not in usernames
+    assert "employee_assignee" in usernames
+    assert "canteen_user_1" not in usernames
+    assert "canteen_manager_2" not in usernames
+    assert "staff_assignee" not in usernames
+    assert "super_assignee" not in usernames
