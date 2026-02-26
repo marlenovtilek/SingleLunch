@@ -45,7 +45,15 @@ services:
       db:
         condition: service_healthy
   web:
-    command: bash -c "pnpm install -r && pnpm --filter web build && HOSTNAME=0.0.0.0 PORT=3000 node apps/web/.next/standalone/apps/web/server.js"
+    command: >-
+      bash -c "
+      pnpm install -r &&
+      pnpm --filter web build &&
+      rm -rf apps/web/.next/standalone/apps/web/.next/static apps/web/.next/standalone/apps/web/public &&
+      mkdir -p apps/web/.next/standalone/apps/web/.next &&
+      cp -R apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static &&
+      cp -R apps/web/public apps/web/.next/standalone/apps/web/public &&
+      HOSTNAME=0.0.0.0 PORT=3000 node apps/web/.next/standalone/apps/web/server.js"
     build:
       context: frontend
     volumes:

@@ -30,6 +30,14 @@ cp .env.frontend.template .env.frontend
 docker compose up --build
 ```
 
+If frontend loads without styles, recreate only `web` once:
+
+```bash
+docker compose up -d --force-recreate web
+```
+
+Then do hard refresh in browser (`Ctrl+Shift+R`).
+
 4. Open:
 - Web: `http://localhost:3000`
 - API: `http://localhost:8765`
